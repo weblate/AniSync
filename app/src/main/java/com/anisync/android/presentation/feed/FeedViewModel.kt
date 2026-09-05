@@ -101,14 +101,18 @@ class FeedViewModel @Inject constructor(
     }
 
     fun onScreenVisible() {
-        if (!hasLoadedInitially) {
-            hasLoadedInitially = true
-            load(page = 1)
-            viewModelScope.launch {
-                val viewerId = activityRepository.getViewerId()
-                if (viewerId != null) {
-                    _uiState.update { it.copy(viewerId = viewerId) }
-                }
+        if (hasLoadedInitially) {
+            // Coming back to a feed that is already drawn: refresh underneath it and let the reader
+            // decide when to jump, rather than reshuffling what they are in the middle of reading.
+            load(page = 1, replaceExisting = true, silent = true)
+            return
+        }
+        hasLoadedInitially = true
+        load(page = 1)
+        viewModelScope.launch {
+            val viewerId = activityRepository.getViewerId()
+            if (viewerId != null) {
+                _uiState.update { it.copy(viewerId = viewerId) }
             }
         }
     }
@@ -179,6 +183,11 @@ class FeedViewModel @Inject constructor(
                     )
                 }
                 load(page = 1, replaceExisting = true)
+            }
+
+            is FeedAction.DismissNewActivity -> {
+                if (_uiState.value.newActivityCount == 0) return
+                _uiState.update { it.copy(newActivityCount = 0) }
             }
 
             is FeedAction.ToggleGroupListUpdates -> {
@@ -392,10 +401,14 @@ class FeedViewModel @Inject constructor(
         }
     }
 
-    private fun load(page: Int, replaceExisting: Boolean = false) {
+    /**
+     * [silent] loads without the spinner and without clearing what is on screen: the result only
+     * counts what is new, which is what the "new activity" pill offers to scroll to.
+     */
+    private fun load(page: Int, replaceExisting: Boolean = false, silent: Boolean = false) {
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
-            if (page == 1 && !_uiState.value.isRefreshing && !_uiState.value.isLoading) {
+            if (page == 1 && !silent && !_uiState.value.isRefreshing && !_uiState.value.isLoading) {
                 _uiState.update { it.copy(isLoading = true) }
             }
 
@@ -435,6 +448,12 @@ class FeedViewModel @Inject constructor(
                         } else {
                             (current.items + data.items).distinctBy { it.id }
                         }
+                        val known = current.items.mapTo(mutableSetOf()) { it.id }
+                        val newCount = if (silent) {
+                            data.items.count { it.id !in known }
+                        } else {
+                            0
+                        }
                         current.copy(
                             isLoading = false,
                             isRefreshing = false,
@@ -443,6 +462,7 @@ class FeedViewModel @Inject constructor(
                             items = merged.toPersistentList(),
                             hasNextPage = data.hasNextPage,
                             currentPage = data.currentPage,
+                            newActivityCount = newCount,
                             errorMessage = null
                         )
                     }
@@ -454,7 +474,8 @@ class FeedViewModel @Inject constructor(
                             isLoading = false,
                             isRefreshing = false,
                             isPaginating = false,
-                            errorMessage = result.message
+                            // A refresh that failed under a drawn feed keeps what is on screen.
+                            errorMessage = if (silent) it.errorMessage else result.message
                         )
                     }
                 }

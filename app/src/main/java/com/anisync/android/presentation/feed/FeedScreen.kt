@@ -40,6 +40,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -50,11 +51,11 @@ import com.anisync.android.domain.FeedScope
 import com.anisync.android.presentation.components.CustomPullToRefreshIndicator
 import com.anisync.android.presentation.components.EmptyStateCompact
 import com.anisync.android.presentation.components.EmptyStateConfigs
-import com.anisync.android.presentation.components.ScrollToTopFab
 import com.anisync.android.presentation.components.alert.rememberRateLimitedRefresh
 import com.anisync.android.presentation.components.richtext.RichTextInputSheet
 import com.anisync.android.presentation.feed.components.FeedDayHeader
 import com.anisync.android.presentation.feed.components.FeedRail
+import com.anisync.android.presentation.feed.components.NewActivityPill
 import com.anisync.android.presentation.feed.components.GroupedListActivityCard
 import com.anisync.android.presentation.profile.components.ActivityCard
 import com.anisync.android.presentation.settings.activityMergeLabel
@@ -82,7 +83,7 @@ fun FeedScreen(
     val pullToRefreshState = rememberPullToRefreshState()
     val systemBarsPadding = WindowInsets.systemBars.asPaddingValues()
     val coroutineScope = rememberCoroutineScope()
-    val showScrollToTop by remember { derivedStateOf { listState.firstVisibleItemIndex > 3 } }
+    val atTop by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
     val feedItems = remember(uiState.items, uiState.groupListUpdates) {
         buildFeedItems(uiState.items, uiState.groupListUpdates)
     }
@@ -109,25 +110,16 @@ fun FeedScreen(
                     .navigationBarsPadding()
                     .padding(bottom = LocalMainNavBarInset.current)
             ) {
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    ScrollToTopFab(
-                        visible = showScrollToTop,
-                        onClick = { coroutineScope.launch { listState.animateScrollToItem(0) } }
-                    )
-                    if (!hasRail) {
-                        FloatingActionButton(
-                            onClick = onComposeStatus,
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = stringResource(R.string.cd_write_status)
-                            )
-                        }
+                if (!hasRail) {
+                    FloatingActionButton(
+                        onClick = onComposeStatus,
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = stringResource(R.string.cd_write_status)
+                        )
                     }
                 }
             }
@@ -171,6 +163,25 @@ fun FeedScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            NewActivityPill(
+                count = uiState.newActivityCount,
+                onClick = {
+                    viewModel.onAction(FeedAction.DismissNewActivity)
+                    coroutineScope.launch { listState.animateScrollToItem(0) }
+                },
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 8.dp)
+                    .zIndex(1f)
+            )
+
+            // Reaching the top is the same answer the pill offers, so it stops asking.
+            LaunchedEffect(atTop, uiState.newActivityCount) {
+                if (atTop && uiState.newActivityCount > 0) {
+                    viewModel.onAction(FeedAction.DismissNewActivity)
+                }
+            }
+
             when {
                 !uiState.isAuthenticated && uiState.scope == FeedScope.FOLLOWING -> {
                     EmptyStateConfigs.NotLoggedIn(
