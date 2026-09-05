@@ -53,7 +53,9 @@ import com.anisync.android.presentation.components.EmptyStateConfigs
 import com.anisync.android.presentation.components.ScrollToTopFab
 import com.anisync.android.presentation.components.alert.rememberRateLimitedRefresh
 import com.anisync.android.presentation.components.richtext.RichTextInputSheet
+import com.anisync.android.presentation.feed.components.FeedDayHeader
 import com.anisync.android.presentation.feed.components.FeedRail
+import com.anisync.android.presentation.feed.components.GroupedListActivityCard
 import com.anisync.android.presentation.profile.components.ActivityCard
 import com.anisync.android.presentation.settings.activityMergeLabel
 import com.anisync.android.presentation.util.LocalMainNavBarInset
@@ -81,6 +83,9 @@ fun FeedScreen(
     val systemBarsPadding = WindowInsets.systemBars.asPaddingValues()
     val coroutineScope = rememberCoroutineScope()
     val showScrollToTop by remember { derivedStateOf { listState.firstVisibleItemIndex > 3 } }
+    val feedItems = remember(uiState.items, uiState.groupListUpdates) {
+        buildFeedItems(uiState.items, uiState.groupListUpdates)
+    }
 
     // On rail layouts the compose action lives in the rail header (Material 3); on compact it stays a
     // floating action button below. SetRailFab is a no-op when there is no rail.
@@ -208,56 +213,71 @@ fun FeedScreen(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(
-                            start = 16.dp,
-                            end = 16.dp,
+                            start = 24.dp,
+                            end = 24.dp,
                             top = 8.dp,
                             bottom = systemBarsPadding.calculateBottomPadding() + 96.dp
                         ),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         itemsIndexed(
-                            items = uiState.items,
-                            key = { _, activity -> "feed_${activity.id}" },
-                            contentType = { _, activity -> activity.type.name }
-                        ) { index, activity ->
+                            items = feedItems,
+                            key = { _, item -> item.key },
+                            contentType = { _, item -> item::class }
+                        ) { index, item ->
 
-                            if (index >= uiState.items.size - 4 && uiState.hasNextPage && !uiState.isLoading && !uiState.isPaginating) {
+                            if (index >= feedItems.size - 4 && uiState.hasNextPage && !uiState.isLoading && !uiState.isPaginating) {
                                 LaunchedEffect(index) {
                                     viewModel.onAction(FeedAction.LoadMore)
                                 }
                             }
 
-                            key(activity.id) {
-                                val isOwner = uiState.viewerId != null &&
-                                    activity.userId == uiState.viewerId
-                                val cardLike: () -> Unit = {
-                                    viewModel.onAction(FeedAction.ToggleLike(activity.id))
-                                }
-                                val cardDelete: (() -> Unit)? = if (isOwner) {
-                                    { viewModel.onAction(FeedAction.DeleteActivity(activity.id)) }
-                                } else null
-                                // Edit only on own TEXT or MESSAGE activities — never on
-                                // server-derived MEDIA_LIST entries.
-                                val cardEdit: (() -> Unit)? =
-                                    if (isOwner && (activity.type == ActivityType.TEXT ||
-                                            activity.type == ActivityType.MESSAGE)) {
-                                        { viewModel.onAction(FeedAction.EditActivity(activity.id)) }
-                                    } else null
-
-                                ActivityCard(
-                                    activity = activity,
-                                    selected = activity.id == selectedActivityId,
-                                    onClick = { onActivityClick(activity.id) },
-                                    onUserClick = onUserClick,
-                                    onMediaClick = onMediaClick,
-                                    onLastReplyClick = onLastReplyClick,
-                                    onSubscribeClick = {
-                                        viewModel.onAction(FeedAction.ToggleSubscribe(activity.id))
-                                    },
-                                    onLikeClick = cardLike,
-                                    onDeleteClick = cardDelete,
-                                    onEditClick = cardEdit
+                            when (item) {
+                                is FeedItem.DayHeader -> FeedDayHeader(
+                                    startOfDay = item.startOfDay,
+                                    activityCount = item.activityCount
                                 )
+
+                                is FeedItem.Group -> GroupedListActivityCard(
+                                    activities = item.activities,
+                                    onActivityClick = onActivityClick,
+                                    onUserClick = onUserClick,
+                                    onMediaClick = onMediaClick
+                                )
+
+                                is FeedItem.Single -> {
+                                    val activity = item.activity
+                                    val isOwner = uiState.viewerId != null &&
+                                        activity.userId == uiState.viewerId
+                                    val cardLike: () -> Unit = {
+                                        viewModel.onAction(FeedAction.ToggleLike(activity.id))
+                                    }
+                                    val cardDelete: (() -> Unit)? = if (isOwner) {
+                                        { viewModel.onAction(FeedAction.DeleteActivity(activity.id)) }
+                                    } else null
+                                    // Edit only on own TEXT or MESSAGE activities — never on
+                                    // server-derived MEDIA_LIST entries.
+                                    val cardEdit: (() -> Unit)? =
+                                        if (isOwner && (activity.type == ActivityType.TEXT ||
+                                                activity.type == ActivityType.MESSAGE)) {
+                                            { viewModel.onAction(FeedAction.EditActivity(activity.id)) }
+                                        } else null
+
+                                    ActivityCard(
+                                        activity = activity,
+                                        selected = activity.id == selectedActivityId,
+                                        onClick = { onActivityClick(activity.id) },
+                                        onUserClick = onUserClick,
+                                        onMediaClick = onMediaClick,
+                                        onLastReplyClick = onLastReplyClick,
+                                        onSubscribeClick = {
+                                            viewModel.onAction(FeedAction.ToggleSubscribe(activity.id))
+                                        },
+                                        onLikeClick = cardLike,
+                                        onDeleteClick = cardDelete,
+                                        onEditClick = cardEdit
+                                    )
+                                }
                             }
                         }
 

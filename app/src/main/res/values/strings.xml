@@ -17,6 +17,17 @@
     <string name="feed_scope_following">Following</string>
     <string name="feed_empty_global">No activity yet — pull to refresh.</string>
     <string name="feed_empty_following">Follow people to see their activity here.</string>
+    <string name="feed_group_summary">%1$s · %2$s</string>
+    <plurals name="feed_group_updates">
+        <item quantity="one">%d list update</item>
+        <item quantity="other">%d list updates</item>
+    </plurals>
+    <string name="feed_day_today">Today</string>
+    <string name="feed_day_yesterday">Yesterday</string>
+    <string name="feed_new_posts">%d new</string>
+    <string name="feed_empty_filtered_title">No matches in %1$s</string>
+    <string name="feed_empty_filtered_body">%1$s and %2$s are hiding every update in this feed.</string>
+    <string name="feed_empty_clear_filters">Clear filters</string>
     <string name="feed_menu_group_updates">Group list updates</string>
     <string name="feed_menu_group_updates_description">Per person, per hour</string>
     <string name="feed_menu_merge_window">Merge window</string>
