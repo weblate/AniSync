@@ -44,6 +44,7 @@ class FeedViewModel @Inject constructor(
         FeedUiState(
             scope = appSettings.lastFeedScope.value,
             filter = appSettings.feedFilter.value,
+            mediaType = appSettings.feedMediaType.value,
             groupListUpdates = appSettings.groupFeedListUpdates.value
         )
     )
@@ -164,6 +165,7 @@ class FeedViewModel @Inject constructor(
 
             is FeedAction.OnMediaTypeChange -> {
                 if (_uiState.value.mediaType == action.mediaType) return
+                appSettings.setFeedMediaType(action.mediaType)
                 _uiState.update {
                     it.copy(
                         mediaType = action.mediaType,

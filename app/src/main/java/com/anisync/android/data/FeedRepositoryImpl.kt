@@ -29,17 +29,16 @@ class FeedRepositoryImpl @Inject constructor(
         scope: FeedScope,
         mediaType: FeedMediaType
     ): Result<FeedPage> = safeApiCall {
+        // Media type narrows list activity only: a status carries no media, so it passes through
+        // every combination and the toggle stays meaningful next to the All chip.
+        val listType = when (mediaType) {
+            FeedMediaType.ANIME -> ActivityType.ANIME_LIST
+            FeedMediaType.MANGA -> ActivityType.MANGA_LIST
+        }
         val typeIn = when (filter) {
-            FeedFilter.ALL -> listOf(
-                ActivityType.TEXT,
-                ActivityType.ANIME_LIST,
-                ActivityType.MANGA_LIST
-            )
+            FeedFilter.ALL -> listOf(ActivityType.TEXT, listType)
             FeedFilter.STATUS -> listOf(ActivityType.TEXT)
-            FeedFilter.LIST -> when (mediaType) {
-                FeedMediaType.ANIME -> listOf(ActivityType.ANIME_LIST)
-                FeedMediaType.MANGA -> listOf(ActivityType.MANGA_LIST)
-            }
+            FeedFilter.LIST -> listOf(listType)
         }
 
         val response = apolloClient

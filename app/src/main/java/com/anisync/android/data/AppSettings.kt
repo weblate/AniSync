@@ -10,6 +10,7 @@ import com.anisync.android.R
 import com.anisync.android.data.AppSettings.Companion.MAX_GRID_COLUMNS
 import com.anisync.android.data.AppSettings.Companion.MIN_GRID_COLUMNS
 import com.anisync.android.domain.FeedFilter
+import com.anisync.android.domain.FeedMediaType
 import com.anisync.android.domain.FeedScope
 import com.anisync.android.domain.ScoreFormat
 import com.anisync.android.domain.media.MediaHost
@@ -499,6 +500,17 @@ class AppSettings @Inject constructor(
         return runCatching { FeedFilter.valueOf(name ?: FeedFilter.ALL.name) }
             .getOrDefault(FeedFilter.ALL)
     }
+
+    // Last selected feed media type. Kept apart from the Library and Discover ones: the feed asks
+    // the question about other people's list activity, not about your own shelf.
+    private val _feedMediaType = MutableStateFlow(
+        if (prefs.getBoolean(KEY_FEED_MEDIA_TYPE_MANGA, false)) {
+            FeedMediaType.MANGA
+        } else {
+            FeedMediaType.ANIME
+        }
+    )
+    val feedMediaType: StateFlow<FeedMediaType> = _feedMediaType.asStateFlow()
 
     // Collapse a run of list updates from one person into a single feed card.
     private val _groupFeedListUpdates =
@@ -1077,6 +1089,14 @@ class AppSettings @Inject constructor(
     }
 
     /**
+     * Persist the last selected feed media type (Anime vs Manga).
+     */
+    fun setFeedMediaType(type: FeedMediaType) {
+        _feedMediaType.value = type
+        prefs.edit().putBoolean(KEY_FEED_MEDIA_TYPE_MANGA, type == FeedMediaType.MANGA).apply()
+    }
+
+    /**
      * Persist whether a run of list updates from one person collapses into one feed card.
      */
     fun setGroupFeedListUpdates(enabled: Boolean) {
@@ -1306,6 +1326,7 @@ companion object {
         private const val KEY_FEED_SCOPE = "feed_scope"
         private const val KEY_FEED_FILTER = "feed_filter"
         private const val KEY_FEED_GROUP_LIST_UPDATES = "feed_group_list_updates"
+        private const val KEY_FEED_MEDIA_TYPE_MANGA = "feed_media_type_manga"
         private const val KEY_LIBRARY_GRID_VIEW = "library_grid_view"
         private const val KEY_DISCOVER_ANIME_SECTIONS = "discover_anime_sections"
         private const val KEY_DISCOVER_MANGA_SECTIONS = "discover_manga_sections"
