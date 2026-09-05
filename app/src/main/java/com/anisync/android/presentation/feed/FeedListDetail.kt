@@ -13,6 +13,7 @@ import com.anisync.android.presentation.navigation.CreateStatus
 import com.anisync.android.presentation.navigation.DetailPanePlaceholder
 import com.anisync.android.presentation.navigation.EditActivity
 import com.anisync.android.presentation.navigation.MediaDetails
+import com.anisync.android.presentation.navigation.SettingsAniList
 import com.anisync.android.presentation.navigation.TwoPaneListDetailScaffold
 import com.anisync.android.presentation.navigation.UserProfile
 import com.anisync.android.presentation.navigation.navigateSafely
@@ -42,6 +43,7 @@ fun FeedListDetail(
             },
             onLoginClick = onLoginClick,
             onComposeStatus = { navController.navigate(CreateStatus) },
+            onOpenActivitySettings = { navController.navigateSafely(SettingsAniList) },
         )
     }
 

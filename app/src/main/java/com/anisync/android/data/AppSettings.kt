@@ -500,6 +500,11 @@ class AppSettings @Inject constructor(
             .getOrDefault(FeedFilter.ALL)
     }
 
+    // Collapse a run of list updates from one person into a single feed card.
+    private val _groupFeedListUpdates =
+        MutableStateFlow(prefs.getBoolean(KEY_FEED_GROUP_LIST_UPDATES, true))
+    val groupFeedListUpdates: StateFlow<Boolean> = _groupFeedListUpdates.asStateFlow()
+
     // Last selected media type (Anime vs Manga), stored per surface so the Library
     // and Discover screens each keep their own preference. Encoded as a boolean
     // (true = Manga) to stay independent of the generated MediaType enum's encoding.
@@ -1072,6 +1077,14 @@ class AppSettings @Inject constructor(
     }
 
     /**
+     * Persist whether a run of list updates from one person collapses into one feed card.
+     */
+    fun setGroupFeedListUpdates(enabled: Boolean) {
+        _groupFeedListUpdates.value = enabled
+        prefs.edit().putBoolean(KEY_FEED_GROUP_LIST_UPDATES, enabled).apply()
+    }
+
+    /**
      * Persist the last selected Library media type (Anime vs Manga).
      */
     fun setLibraryMediaType(type: MediaType) {
@@ -1292,6 +1305,7 @@ companion object {
         private const val KEY_LAST_SELECTED_MANGA_TAB = "last_selected_manga_tab"
         private const val KEY_FEED_SCOPE = "feed_scope"
         private const val KEY_FEED_FILTER = "feed_filter"
+        private const val KEY_FEED_GROUP_LIST_UPDATES = "feed_group_list_updates"
         private const val KEY_LIBRARY_GRID_VIEW = "library_grid_view"
         private const val KEY_DISCOVER_ANIME_SECTIONS = "discover_anime_sections"
         private const val KEY_DISCOVER_MANGA_SECTIONS = "discover_manga_sections"

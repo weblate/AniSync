@@ -10,6 +10,7 @@ import com.anisync.android.domain.ActivityUpdate
 import com.anisync.android.domain.FeedRepository
 import com.anisync.android.domain.FeedScope
 import com.anisync.android.domain.Result
+import com.anisync.android.domain.UserOptionsRepository
 import com.anisync.android.presentation.components.alert.ToastManager
 import com.anisync.android.presentation.components.alert.ToastType
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -35,13 +36,15 @@ class FeedViewModel @Inject constructor(
     private val activityRepository: ActivityRepository,
     private val activityEventBus: ActivityEventBus,
     private val appSettings: AppSettings,
+    private val userOptionsRepository: UserOptionsRepository,
     private val toastManager: ToastManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
         FeedUiState(
             scope = appSettings.lastFeedScope.value,
-            filter = appSettings.feedFilter.value
+            filter = appSettings.feedFilter.value,
+            groupListUpdates = appSettings.groupFeedListUpdates.value
         )
     )
     val uiState: StateFlow<FeedUiState> = _uiState.asStateFlow()
@@ -53,6 +56,14 @@ class FeedViewModel @Inject constructor(
     private var loadJob: Job? = null
 
     init {
+        // The account's merge window is the server-side half of grouping, so the feed menu shows
+        // whatever the options screen last synced rather than asking AniList again.
+        viewModelScope.launch {
+            userOptionsRepository.cachedOptions.collect { options ->
+                _uiState.update { it.copy(activityMergeMinutes = options?.activityMergeTime) }
+            }
+        }
+
         // Reflect like / subscribe / reply / delete made on the activity detail
         // screen (or elsewhere) back onto the cached feed items without a refetch.
         viewModelScope.launch {
@@ -166,6 +177,12 @@ class FeedViewModel @Inject constructor(
                     )
                 }
                 load(page = 1, replaceExisting = true)
+            }
+
+            is FeedAction.ToggleGroupListUpdates -> {
+                val grouped = !_uiState.value.groupListUpdates
+                appSettings.setGroupFeedListUpdates(grouped)
+                _uiState.update { it.copy(groupListUpdates = grouped) }
             }
 
             is FeedAction.ToggleSubscribe -> toggleSubscribe(action.activityId)

@@ -17,6 +17,11 @@
     <string name="feed_scope_following">Following</string>
     <string name="feed_empty_global">No activity yet — pull to refresh.</string>
     <string name="feed_empty_following">Follow people to see their activity here.</string>
+    <string name="feed_menu_group_updates">Group list updates</string>
+    <string name="feed_menu_group_updates_description">Per person, per hour</string>
+    <string name="feed_menu_merge_window">Merge window</string>
+    <string name="feed_menu_merge_window_description">How AniList merges your updates</string>
+    <string name="cd_feed_options">Feed options</string>
     <string name="feed_compose_title">Write a Status</string>
     <string name="feed_compose_placeholder">Share what\'s on your mind…</string>
     <string name="feed_compose_submit">Post</string>

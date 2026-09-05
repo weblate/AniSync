@@ -23,6 +23,10 @@ data class FeedUiState(
     val mediaType: FeedMediaType = FeedMediaType.ANIME,
     val isAuthenticated: Boolean = true,
     val viewerId: Int? = null,
+    /** Collapse a run of list updates from one person into one card (feed display choice). */
+    val groupListUpdates: Boolean = true,
+    /** The account's AniList `activityMergeTime`, shown on the feed menu. Null until options load. */
+    val activityMergeMinutes: Int? = null,
     val errorMessage: String? = null,
     val pendingLikeIds: ImmutableSet<Int> = persistentSetOf(),
     val pendingDeleteIds: ImmutableSet<Int> = persistentSetOf(),
@@ -41,6 +45,7 @@ sealed interface FeedAction {
     data class OnFilterChange(val filter: FeedFilter) : FeedAction
     data class OnScopeChange(val scope: FeedScope) : FeedAction
     data class OnMediaTypeChange(val mediaType: FeedMediaType) : FeedAction
+    data object ToggleGroupListUpdates : FeedAction
     data class ToggleSubscribe(val activityId: Int) : FeedAction
     data class ToggleLike(val activityId: Int) : FeedAction
     data class DeleteActivity(val activityId: Int) : FeedAction

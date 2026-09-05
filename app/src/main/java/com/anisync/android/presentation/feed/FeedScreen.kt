@@ -53,8 +53,9 @@ import com.anisync.android.presentation.components.EmptyStateConfigs
 import com.anisync.android.presentation.components.ScrollToTopFab
 import com.anisync.android.presentation.components.alert.rememberRateLimitedRefresh
 import com.anisync.android.presentation.components.richtext.RichTextInputSheet
-import com.anisync.android.presentation.feed.components.FeedFilterBar
+import com.anisync.android.presentation.feed.components.FeedRail
 import com.anisync.android.presentation.profile.components.ActivityCard
+import com.anisync.android.presentation.settings.activityMergeLabel
 import com.anisync.android.presentation.util.LocalMainNavBarInset
 import com.anisync.android.presentation.util.LocalRailFabState
 import com.anisync.android.presentation.util.SetRailFab
@@ -69,6 +70,7 @@ fun FeedScreen(
     onLastReplyClick: (activityId: Int, replyId: Int) -> Unit,
     onLoginClick: () -> Unit,
     onComposeStatus: () -> Unit,
+    onOpenActivitySettings: () -> Unit,
     // The activity id open in the two-pane detail (or null); its card shows the selection ring.
     selectedActivityId: Int? = null,
     viewModel: FeedViewModel = hiltViewModel()
@@ -127,13 +129,19 @@ fun FeedScreen(
         },
         topBar = {
             Column(modifier = Modifier.statusBarsPadding()) {
-                FeedFilterBar(
-                    filter = uiState.filter,
+                FeedRail(
                     scope = uiState.scope,
+                    filter = uiState.filter,
                     mediaType = uiState.mediaType,
-                    onFilterChange = { viewModel.onAction(FeedAction.OnFilterChange(it)) },
+                    groupListUpdates = uiState.groupListUpdates,
+                    mergeWindowLabel = activityMergeLabel(uiState.activityMergeMinutes),
                     onScopeChange = { viewModel.onAction(FeedAction.OnScopeChange(it)) },
+                    onFilterChange = { viewModel.onAction(FeedAction.OnFilterChange(it)) },
                     onMediaTypeChange = { viewModel.onAction(FeedAction.OnMediaTypeChange(it)) },
+                    onToggleGroupListUpdates = {
+                        viewModel.onAction(FeedAction.ToggleGroupListUpdates)
+                    },
+                    onOpenActivitySettings = onOpenActivitySettings,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
 
