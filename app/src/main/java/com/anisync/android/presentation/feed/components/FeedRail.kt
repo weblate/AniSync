@@ -17,28 +17,25 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.filled.DynamicFeed
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -53,24 +50,21 @@ import com.anisync.android.domain.FeedMediaType
 import com.anisync.android.domain.FeedScope
 import com.anisync.android.presentation.components.ConnectedToggleDefaults
 import com.anisync.android.presentation.components.ConnectedToggleSegment
-import com.anisync.android.presentation.components.MediaTypeToggle
 import com.anisync.android.presentation.util.bouncyClickable
 import com.anisync.android.presentation.util.rememberHapticFeedback
-import com.anisync.android.type.MediaType
 
 private val RailHeight = ConnectedToggleDefaults.Height
-
-/** Chip inset used until the pinned toggle has been measured. */
-private val PinnedToggleInsetEstimate = 120.dp
 
 /**
  * The whole feed header: which stream, then what kind of activity in it.
  *
- * The shipped screen spent a full-width scope group and a chip row on this — 114dp of chrome that
+ * The shipped screen spent a full-width scope group and a chip row on this, 114dp of chrome that
  * never scrolled away and shifted under you whenever the media toggle appeared and disappeared.
- * Scope keeps a row of its own (it is the question asked most, and it hosts the overflow), and
- * everything else shares the rail the Library and Discover screens already use: the media toggle
- * pinned at the start, the activity chips scrolling under it.
+ * Scope keeps a row of its own, since it is the question asked most and it hosts the overflow.
+ *
+ * The rail below it is one axis, not two. Media type belongs to list activity alone, so pairing a
+ * type toggle with the activity chips left it answering only one of them and dead under the other
+ * two. The four chips say what each one actually selects.
  */
 @Composable
 fun FeedRail(
@@ -81,7 +75,7 @@ fun FeedRail(
     mergeWindowLabel: String,
     onScopeChange: (FeedScope) -> Unit,
     onFilterChange: (FeedFilter) -> Unit,
-    onMediaTypeChange: (FeedMediaType) -> Unit,
+    onListTypeChange: (FeedMediaType) -> Unit,
     onToggleGroupListUpdates: () -> Unit,
     onOpenActivitySettings: () -> Unit,
     modifier: Modifier = Modifier
@@ -102,7 +96,7 @@ fun FeedRail(
             filter = filter,
             mediaType = mediaType,
             onFilterChange = onFilterChange,
-            onMediaTypeChange = onMediaTypeChange
+            onListTypeChange = onListTypeChange
         )
     }
 }
@@ -166,65 +160,41 @@ private fun FeedScopeRow(
 /**
  * One pinned row carrying both "which media" and "which kind of activity".
  *
- * Media type only narrows list activity — a status carries no media — so the toggle dims under the
- * Status chip instead of vanishing and taking the row's shape with it.
+ * Only a list update carries a media type, so the toggle answers the List chip alone. Under All and
+ * Status it dims rather than vanishing: a rail that changes shape with the filter is the layout
+ * shift this row was built to remove.
  */
 @Composable
 private fun FeedFilterRail(
     filter: FeedFilter,
     mediaType: FeedMediaType,
     onFilterChange: (FeedFilter) -> Unit,
-    onMediaTypeChange: (FeedMediaType) -> Unit
+    onListTypeChange: (FeedMediaType) -> Unit
 ) {
     val background = MaterialTheme.colorScheme.background
-    val density = LocalDensity.current
-    // The pinned toggle is as wide as its translated labels make it, so the chips are inset by what
-    // it measures rather than by a constant that only holds in English.
-    var pinnedInset by remember { mutableStateOf(PinnedToggleInsetEstimate) }
+    val chips = remember { FeedChip.entries }
 
     Box(modifier = Modifier.fillMaxWidth().height(RailHeight)) {
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(start = pinnedInset, end = 16.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            items(FeedFilter.entries, key = { it.name }) { entry ->
+            items(chips, key = { it.name }) { chip ->
                 FeedFilterChip(
-                    filter = entry,
-                    selected = entry == filter,
-                    onClick = { onFilterChange(entry) }
+                    chip = chip,
+                    selected = chip.isSelected(filter, mediaType),
+                    onClick = {
+                        when (chip) {
+                            FeedChip.ALL -> onFilterChange(FeedFilter.ALL)
+                            FeedChip.STATUS -> onFilterChange(FeedFilter.STATUS)
+                            FeedChip.ANIME -> onListTypeChange(FeedMediaType.ANIME)
+                            FeedChip.MANGA -> onListTypeChange(FeedMediaType.MANGA)
+                        }
+                    }
                 )
             }
-        }
-
-        // Pinned media toggle over an opaque plate, so a chip scrolling under it does not show
-        // through the seam between the segments, with a short fade at the hand-off.
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.onSizeChanged { size ->
-                pinnedInset = with(density) { size.width.toDp() }
-            }
-        ) {
-            Row(
-                modifier = Modifier
-                    .background(background)
-                    .height(RailHeight)
-                    .padding(start = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                MediaTypeToggle(
-                    selected = mediaType.toMediaType(),
-                    onSelect = { onMediaTypeChange(it.toFeedMediaType()) },
-                    enabled = filter != FeedFilter.STATUS
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .width(8.dp)
-                    .height(RailHeight)
-                    .background(Brush.horizontalGradient(listOf(background, Color.Transparent)))
-            )
         }
 
         Box(
@@ -237,9 +207,19 @@ private fun FeedFilterRail(
     }
 }
 
+/** The four things the rail can select, in the order they narrow the feed. */
+private enum class FeedChip { ALL, STATUS, ANIME, MANGA }
+
+private fun FeedChip.isSelected(filter: FeedFilter, mediaType: FeedMediaType): Boolean = when (this) {
+    FeedChip.ALL -> filter == FeedFilter.ALL
+    FeedChip.STATUS -> filter == FeedFilter.STATUS
+    FeedChip.ANIME -> filter == FeedFilter.LIST && mediaType == FeedMediaType.ANIME
+    FeedChip.MANGA -> filter == FeedFilter.LIST && mediaType == FeedMediaType.MANGA
+}
+
 @Composable
 private fun FeedFilterChip(
-    filter: FeedFilter,
+    chip: FeedChip,
     selected: Boolean,
     onClick: () -> Unit
 ) {
@@ -260,7 +240,7 @@ private fun FeedFilterChip(
         },
         label = "FeedChipContent"
     )
-    val label = stringResource(filter.labelRes())
+    val label = stringResource(chip.labelRes())
 
     Surface(
         color = container,
@@ -287,7 +267,7 @@ private fun FeedFilterChip(
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Icon(
-                imageVector = filter.icon(),
+                imageVector = chip.icon(),
                 contentDescription = null,
                 tint = content,
                 modifier = Modifier.size(16.dp)
@@ -304,24 +284,16 @@ private fun FeedFilterChip(
     }
 }
 
-private fun FeedFilter.icon(): ImageVector = when (this) {
-    FeedFilter.ALL -> Icons.Default.DynamicFeed
-    FeedFilter.STATUS -> Icons.AutoMirrored.Outlined.Notes
-    FeedFilter.LIST -> Icons.AutoMirrored.Filled.ViewList
+private fun FeedChip.icon(): ImageVector = when (this) {
+    FeedChip.ALL -> Icons.Default.DynamicFeed
+    FeedChip.STATUS -> Icons.AutoMirrored.Outlined.Notes
+    FeedChip.ANIME -> Icons.Default.Tv
+    FeedChip.MANGA -> Icons.AutoMirrored.Filled.MenuBook
 }
 
-private fun FeedFilter.labelRes(): Int = when (this) {
-    FeedFilter.ALL -> R.string.feed_filter_all
-    FeedFilter.STATUS -> R.string.feed_filter_status
-    FeedFilter.LIST -> R.string.feed_filter_list
-}
-
-private fun FeedMediaType.toMediaType(): MediaType = when (this) {
-    FeedMediaType.ANIME -> MediaType.ANIME
-    FeedMediaType.MANGA -> MediaType.MANGA
-}
-
-private fun MediaType.toFeedMediaType(): FeedMediaType = when (this) {
-    MediaType.MANGA -> FeedMediaType.MANGA
-    else -> FeedMediaType.ANIME
+private fun FeedChip.labelRes(): Int = when (this) {
+    FeedChip.ALL -> R.string.feed_filter_all
+    FeedChip.STATUS -> R.string.feed_filter_status
+    FeedChip.ANIME -> R.string.media_type_anime
+    FeedChip.MANGA -> R.string.media_type_manga
 }

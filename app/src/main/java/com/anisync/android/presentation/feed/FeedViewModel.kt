@@ -7,6 +7,7 @@ import com.anisync.android.domain.ActivityEventBus
 import com.anisync.android.domain.ActivityRepository
 import com.anisync.android.domain.ActivityType
 import com.anisync.android.domain.ActivityUpdate
+import com.anisync.android.domain.FeedFilter
 import com.anisync.android.domain.FeedRepository
 import com.anisync.android.domain.FeedScope
 import com.anisync.android.domain.Result
@@ -171,11 +172,14 @@ class FeedViewModel @Inject constructor(
                 load(page = 1, replaceExisting = true)
             }
 
-            is FeedAction.OnMediaTypeChange -> {
-                if (_uiState.value.mediaType == action.mediaType) return
+            is FeedAction.OnListTypeChange -> {
+                val current = _uiState.value
+                if (current.filter == FeedFilter.LIST && current.mediaType == action.mediaType) return
+                appSettings.setFeedFilter(FeedFilter.LIST)
                 appSettings.setFeedMediaType(action.mediaType)
                 _uiState.update {
                     it.copy(
+                        filter = FeedFilter.LIST,
                         mediaType = action.mediaType,
                         items = persistentListOf(),
                         hasNextPage = false,

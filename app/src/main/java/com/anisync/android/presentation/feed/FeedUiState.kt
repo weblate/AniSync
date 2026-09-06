@@ -46,7 +46,8 @@ sealed interface FeedAction {
     data object LoadMore : FeedAction
     data class OnFilterChange(val filter: FeedFilter) : FeedAction
     data class OnScopeChange(val scope: FeedScope) : FeedAction
-    data class OnMediaTypeChange(val mediaType: FeedMediaType) : FeedAction
+    /** The Anime and Manga chips: list activity of one type, in one step. */
+    data class OnListTypeChange(val mediaType: FeedMediaType) : FeedAction
     data object ToggleGroupListUpdates : FeedAction
     data object DismissNewActivity : FeedAction
     data class ToggleSubscribe(val activityId: Int) : FeedAction

@@ -27,17 +27,12 @@ val MediaTypeToggleHeight = ConnectedToggleDefaults.Height
  * target. The shapes come from [ConnectedToggleSegment], which the feed's scope switch also uses.
  *
  * Shared by the Library rail, Discover's browse rail and the Feed rail so they cannot drift apart.
- *
- * [enabled] is for the rail that shows the toggle beside a filter it does not apply to — the feed's
- * Status chip, where no activity carries a media type. It dims rather than disappears, so the row
- * keeps its shape while the control stops answering.
  */
 @Composable
 fun MediaTypeToggle(
     selected: MediaType,
     onSelect: (MediaType) -> Unit,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true,
     height: Dp = MediaTypeToggleHeight
 ) {
     val haptic = rememberHapticFeedback()
@@ -58,7 +53,6 @@ fun MediaTypeToggle(
             selected = selected == MediaType.ANIME,
             leading = true,
             showLabel = showLabels,
-            enabled = enabled,
             height = height,
             modifier = segmentModifier,
             onClick = {
@@ -72,7 +66,6 @@ fun MediaTypeToggle(
             selected = selected == MediaType.MANGA,
             leading = false,
             showLabel = showLabels,
-            enabled = enabled,
             height = height,
             modifier = segmentModifier,
             onClick = {

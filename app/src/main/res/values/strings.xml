@@ -31,8 +31,7 @@
     <string name="feed_day_yesterday">Yesterday</string>
     <string name="feed_new_posts">%d new</string>
     <string name="feed_empty_filtered_title">No matches in %1$s</string>
-    <string name="feed_empty_filtered_body">%1$s and %2$s are hiding every update in this feed.</string>
-    <string name="feed_empty_filtered_body_single">%1$s is hiding every update in this feed.</string>
+    <string name="feed_empty_filtered_body">The %1$s filter is hiding every update in this feed.</string>
     <string name="feed_empty_clear_filters">Clear filters</string>
     <string name="feed_menu_group_updates">Group list updates</string>
     <string name="feed_menu_group_updates_description">Per person, per hour</string>

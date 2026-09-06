@@ -14,7 +14,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
@@ -76,7 +75,6 @@ fun ConnectedToggleSegment(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     showLabel: Boolean = true,
-    enabled: Boolean = true,
     height: Dp = ConnectedToggleDefaults.Height
 ) {
     val shape = ConnectedToggleDefaults.shape(leading = leading, selected = selected)
@@ -94,9 +92,7 @@ fun ConnectedToggleSegment(
         shape = shape,
         modifier = modifier
             .height(height)
-            .alpha(if (enabled) 1f else DisabledSegmentAlpha)
             .bouncyClickable(
-                enabled = enabled,
                 onClick = onClick,
                 role = Role.Tab,
                 clipShape = shape
@@ -131,5 +127,3 @@ fun ConnectedToggleSegment(
         }
     }
 }
-
-private const val DisabledSegmentAlpha = 0.38f

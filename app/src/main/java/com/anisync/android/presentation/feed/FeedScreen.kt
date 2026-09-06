@@ -134,7 +134,7 @@ fun FeedScreen(
                     mergeWindowLabel = activityMergeLabel(uiState.activityMergeMinutes),
                     onScopeChange = { viewModel.onAction(FeedAction.OnScopeChange(it)) },
                     onFilterChange = { viewModel.onAction(FeedAction.OnFilterChange(it)) },
-                    onMediaTypeChange = { viewModel.onAction(FeedAction.OnMediaTypeChange(it)) },
+                    onListTypeChange = { viewModel.onAction(FeedAction.OnListTypeChange(it)) },
                     onToggleGroupListUpdates = {
                         viewModel.onAction(FeedAction.ToggleGroupListUpdates)
                     },
@@ -239,10 +239,7 @@ fun FeedScreen(
                             }
 
                             when (item) {
-                                is FeedItem.DayHeader -> FeedDayHeader(
-                                    startOfDay = item.startOfDay,
-                                    activityCount = item.activityCount
-                                )
+                                is FeedItem.DayHeader -> FeedDayHeader(startOfDay = item.startOfDay)
 
                                 is FeedItem.Group -> GroupedListActivityCard(
                                     activities = item.activities,

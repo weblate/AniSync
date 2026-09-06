@@ -29,14 +29,18 @@ class FeedRepositoryImpl @Inject constructor(
         scope: FeedScope,
         mediaType: FeedMediaType
     ): Result<FeedPage> = safeApiCall {
-        // Media type narrows list activity only: a status carries no media, so it passes through
-        // every combination and the toggle stays meaningful next to the All chip.
+        // Media type is a property of list activity alone, so it narrows the List chip and nothing
+        // else: All has to mean both types, or it drops half the updates without saying so.
         val listType = when (mediaType) {
             FeedMediaType.ANIME -> ActivityType.ANIME_LIST
             FeedMediaType.MANGA -> ActivityType.MANGA_LIST
         }
         val typeIn = when (filter) {
-            FeedFilter.ALL -> listOf(ActivityType.TEXT, listType)
+            FeedFilter.ALL -> listOf(
+                ActivityType.TEXT,
+                ActivityType.ANIME_LIST,
+                ActivityType.MANGA_LIST
+            )
             FeedFilter.STATUS -> listOf(ActivityType.TEXT)
             FeedFilter.LIST -> listOf(listType)
         }

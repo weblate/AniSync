@@ -59,29 +59,23 @@ fun FeedEmptyState(
     onClearFilters: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val filterLabel = stringResource(
+    // The rail selects one thing at a time, so the state can name it.
+    val chipLabel = stringResource(
         when (filter) {
             FeedFilter.ALL -> R.string.feed_filter_all
             FeedFilter.STATUS -> R.string.feed_filter_status
-            FeedFilter.LIST -> R.string.feed_filter_list
-        }
-    )
-    val mediaLabel = stringResource(
-        when (mediaType) {
-            FeedMediaType.ANIME -> R.string.media_type_anime
-            FeedMediaType.MANGA -> R.string.media_type_manga
+            FeedFilter.LIST -> when (mediaType) {
+                FeedMediaType.ANIME -> R.string.media_type_anime
+                FeedMediaType.MANGA -> R.string.media_type_manga
+            }
         }
     )
 
     when {
         filter != FeedFilter.ALL -> EmptyState(
             icon = Icons.Default.Tune,
-            title = stringResource(R.string.feed_empty_filtered_title, filterLabel),
-            description = if (filter == FeedFilter.LIST) {
-                stringResource(R.string.feed_empty_filtered_body, filterLabel, mediaLabel)
-            } else {
-                stringResource(R.string.feed_empty_filtered_body_single, filterLabel)
-            },
+            title = stringResource(R.string.feed_empty_filtered_title, chipLabel),
+            description = stringResource(R.string.feed_empty_filtered_body, chipLabel),
             actionLabel = stringResource(R.string.feed_empty_clear_filters),
             actionIcon = Icons.Default.Close,
             onAction = onClearFilters,
