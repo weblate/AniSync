@@ -104,6 +104,10 @@ class FeedViewModel @Inject constructor(
         if (hasLoadedInitially) {
             // Coming back to a feed that is already drawn: refresh underneath it and let the reader
             // decide when to jump, rather than reshuffling what they are in the middle of reading.
+            // A load already on its way owns the screen — cancelling it for this one would strand
+            // the spinner it put up.
+            val state = _uiState.value
+            if (state.isLoading || state.isRefreshing || state.isPaginating) return
             load(page = 1, replaceExisting = true, silent = true)
             return
         }
@@ -474,8 +478,14 @@ class FeedViewModel @Inject constructor(
                             isLoading = false,
                             isRefreshing = false,
                             isPaginating = false,
-                            // A refresh that failed under a drawn feed keeps what is on screen.
-                            errorMessage = if (silent) it.errorMessage else result.message
+                            // A refresh that failed under a drawn feed keeps what is on screen;
+                            // with nothing drawn there is nothing to protect, and silence would
+                            // read as "no activity" rather than "this did not load".
+                            errorMessage = if (silent && it.items.isNotEmpty()) {
+                                it.errorMessage
+                            } else {
+                                result.message
+                            }
                         )
                     }
                 }
