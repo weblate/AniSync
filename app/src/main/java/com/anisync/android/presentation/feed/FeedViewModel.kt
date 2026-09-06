@@ -3,6 +3,7 @@ package com.anisync.android.presentation.feed
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.anisync.android.data.AppSettings
+import com.anisync.android.data.account.AccountManager
 import com.anisync.android.domain.ActivityEventBus
 import com.anisync.android.domain.ActivityRepository
 import com.anisync.android.domain.ActivityType
@@ -36,6 +37,7 @@ class FeedViewModel @Inject constructor(
     private val feedRepository: FeedRepository,
     private val activityRepository: ActivityRepository,
     private val activityEventBus: ActivityEventBus,
+    private val accountManager: AccountManager,
     private val appSettings: AppSettings,
     private val userOptionsRepository: UserOptionsRepository,
     private val toastManager: ToastManager
@@ -43,6 +45,7 @@ class FeedViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(
         FeedUiState(
+            viewerId = accountManager.activeAccount.value?.id,
             scope = appSettings.lastFeedScope.value,
             filter = appSettings.feedFilter.value,
             mediaType = appSettings.feedMediaType.value,
@@ -58,6 +61,14 @@ class FeedViewModel @Inject constructor(
     private var loadJob: Job? = null
 
     init {
+        // Which cards offer edit and delete follows the signed-in account, which switching accounts
+        // changes under us.
+        viewModelScope.launch {
+            accountManager.activeAccount.collect { account ->
+                _uiState.update { it.copy(viewerId = account?.id) }
+            }
+        }
+
         // The account's merge window is the server-side half of grouping, so the feed menu shows
         // whatever the options screen last synced rather than asking AniList again.
         viewModelScope.launch {
@@ -114,12 +125,6 @@ class FeedViewModel @Inject constructor(
         }
         hasLoadedInitially = true
         load(page = 1)
-        viewModelScope.launch {
-            val viewerId = activityRepository.getViewerId()
-            if (viewerId != null) {
-                _uiState.update { it.copy(viewerId = viewerId) }
-            }
-        }
     }
 
     fun onAction(action: FeedAction) {
@@ -422,23 +427,23 @@ class FeedViewModel @Inject constructor(
 
             val state = _uiState.value
 
-            if (state.scope == FeedScope.FOLLOWING) {
-                val viewerId = activityRepository.getViewerId()
-                if (viewerId == null) {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            isRefreshing = false,
-                            isPaginating = false,
-                            isAuthenticated = false,
-                            items = persistentListOf(),
-                            hasNextPage = false,
-                            currentPage = 1,
-                            errorMessage = null
-                        )
-                    }
-                    return@launch
+            // Signed out is a local fact, not a question for AniList: asking the network who the
+            // viewer is turned every rate limit into "you follow nobody", because the lookup
+            // answers null for a failed request and for a missing account alike.
+            if (state.scope == FeedScope.FOLLOWING && accountManager.activeAccount.value == null) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        isRefreshing = false,
+                        isPaginating = false,
+                        isAuthenticated = false,
+                        items = persistentListOf(),
+                        hasNextPage = false,
+                        currentPage = 1,
+                        errorMessage = null
+                    )
                 }
+                return@launch
             }
 
             when (val result = feedRepository.getFeed(
@@ -471,7 +476,8 @@ class FeedViewModel @Inject constructor(
                             hasNextPage = data.hasNextPage,
                             currentPage = data.currentPage,
                             newActivityCount = newCount,
-                            errorMessage = null
+                            errorMessage = null,
+                            errorCode = null
                         )
                     }
                 }
@@ -489,6 +495,11 @@ class FeedViewModel @Inject constructor(
                                 it.errorMessage
                             } else {
                                 result.message
+                            },
+                            errorCode = if (silent && it.items.isNotEmpty()) {
+                                it.errorCode
+                            } else {
+                                result.code
                             }
                         )
                     }

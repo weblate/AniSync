@@ -30,6 +30,8 @@ data class FeedUiState(
     /** Activities a background refresh pulled in above what the reader has already seen. */
     val newActivityCount: Int = 0,
     val errorMessage: String? = null,
+    /** HTTP-ish code behind [errorMessage]; 429 gets its own wording rather than the offline one. */
+    val errorCode: Int? = null,
     val pendingLikeIds: ImmutableSet<Int> = persistentSetOf(),
     val pendingDeleteIds: ImmutableSet<Int> = persistentSetOf(),
     /**

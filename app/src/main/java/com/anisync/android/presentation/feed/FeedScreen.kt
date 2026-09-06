@@ -65,6 +65,9 @@ import com.anisync.android.presentation.util.LocalRailFabState
 import com.anisync.android.presentation.util.SetRailFab
 import kotlinx.coroutines.launch
 
+/** AniList answers 429 when the app asks faster than its budget allows. */
+private const val RATE_LIMIT_CODE = 429
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun FeedScreen(
@@ -194,6 +197,7 @@ fun FeedScreen(
 
                 uiState.errorMessage != null && uiState.items.isEmpty() -> {
                     FeedOfflineState(
+                        rateLimited = uiState.errorCode == RATE_LIMIT_CODE,
                         onRetry = { viewModel.onAction(FeedAction.Refresh) },
                         modifier = Modifier.fillMaxSize()
                     )

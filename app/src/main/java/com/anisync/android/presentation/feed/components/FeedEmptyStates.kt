@@ -20,20 +20,28 @@ import com.anisync.android.domain.FeedScope
 import com.anisync.android.presentation.components.EmptyState
 
 /**
- * Nothing came back at all — in practice the network, since the feed is one request.
+ * Nothing came back at all: the network, or AniList throttling us.
  *
- * Same mark, same words and same way out as Discover's offline state: two screens failing for one
- * reason should not look like two different problems.
+ * Same mark and same way out as Discover's offline state, since two screens failing for one reason
+ * should not look like two different problems. Only the sentence changes, because "check your
+ * connection" is bad advice when the connection is fine and the app is simply asking too fast.
  */
 @Composable
 fun FeedOfflineState(
     onRetry: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    rateLimited: Boolean = false
 ) {
     EmptyState(
         icon = Icons.Default.Public,
         title = stringResource(R.string.feed_empty_offline_title),
-        description = stringResource(R.string.feed_empty_offline_desc),
+        description = stringResource(
+            if (rateLimited) {
+                R.string.profile_rate_limited_error
+            } else {
+                R.string.feed_empty_offline_desc
+            }
+        ),
         actionLabel = stringResource(R.string.retry),
         actionIcon = Icons.Default.Refresh,
         onAction = onRetry,
