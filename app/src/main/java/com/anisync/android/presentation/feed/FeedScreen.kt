@@ -47,13 +47,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.anisync.android.R
 import com.anisync.android.domain.ActivityType
 import com.anisync.android.domain.ContentLimits
+import com.anisync.android.domain.FeedFilter
 import com.anisync.android.domain.FeedScope
 import com.anisync.android.presentation.components.CustomPullToRefreshIndicator
-import com.anisync.android.presentation.components.EmptyStateCompact
-import com.anisync.android.presentation.components.EmptyStateConfigs
 import com.anisync.android.presentation.components.alert.rememberRateLimitedRefresh
 import com.anisync.android.presentation.components.richtext.RichTextInputSheet
 import com.anisync.android.presentation.feed.components.FeedDayHeader
+import com.anisync.android.presentation.feed.components.FeedEmptyState
+import com.anisync.android.presentation.feed.components.FeedOfflineState
 import com.anisync.android.presentation.feed.components.FeedRail
 import com.anisync.android.presentation.feed.components.NewActivityPill
 import com.anisync.android.presentation.feed.components.GroupedListActivityCard
@@ -71,7 +72,6 @@ fun FeedScreen(
     onUserClick: (String) -> Unit,
     onMediaClick: (Int) -> Unit,
     onLastReplyClick: (activityId: Int, replyId: Int) -> Unit,
-    onLoginClick: () -> Unit,
     onComposeStatus: () -> Unit,
     onOpenActivitySettings: () -> Unit,
     // The activity id open in the two-pane detail (or null); its card shows the selection ring.
@@ -183,13 +183,6 @@ fun FeedScreen(
             }
 
             when {
-                !uiState.isAuthenticated && uiState.scope == FeedScope.FOLLOWING -> {
-                    EmptyStateConfigs.NotLoggedIn(
-                        onLoginClick = onLoginClick,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-
                 uiState.isLoading && uiState.items.isEmpty() -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -200,21 +193,23 @@ fun FeedScreen(
                 }
 
                 uiState.errorMessage != null && uiState.items.isEmpty() -> {
-                    EmptyStateConfigs.GenericError(
-                        message = uiState.errorMessage!!,
-                        onRetryClick = { viewModel.onAction(FeedAction.Refresh) },
+                    FeedOfflineState(
+                        onRetry = { viewModel.onAction(FeedAction.Refresh) },
                         modifier = Modifier.fillMaxSize()
                     )
                 }
 
                 uiState.items.isEmpty() -> {
-                    val emptyMsg = when (uiState.scope) {
-                        FeedScope.GLOBAL -> stringResource(R.string.feed_empty_global)
-                        FeedScope.FOLLOWING -> stringResource(R.string.feed_empty_following)
-                    }
-                    EmptyStateCompact(
-                        icon = Icons.Default.DynamicFeed,
-                        title = emptyMsg,
+                    FeedEmptyState(
+                        scope = uiState.scope,
+                        filter = uiState.filter,
+                        mediaType = uiState.mediaType,
+                        onSwitchToGlobal = {
+                            viewModel.onAction(FeedAction.OnScopeChange(FeedScope.GLOBAL))
+                        },
+                        onClearFilters = {
+                            viewModel.onAction(FeedAction.OnFilterChange(FeedFilter.ALL))
+                        },
                         modifier = Modifier.fillMaxSize()
                     )
                 }

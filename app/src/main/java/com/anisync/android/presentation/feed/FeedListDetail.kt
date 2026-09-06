@@ -29,7 +29,6 @@ import com.anisync.android.presentation.util.LocalPaneIsRoot
 @Composable
 fun FeedListDetail(
     navController: NavHostController,
-    onLoginClick: () -> Unit,
     onActivityClickFullScreen: (Int) -> Unit,
 ) {
     val feed: @Composable (selectedActivityId: Int?, onActivityClick: (Int) -> Unit) -> Unit = { selectedActivityId, onActivityClick ->
@@ -41,7 +40,6 @@ fun FeedListDetail(
             onLastReplyClick = { activityId, replyId ->
                 navController.navigate(ActivityDetail(activityId, replyId))
             },
-            onLoginClick = onLoginClick,
             onComposeStatus = { navController.navigate(CreateStatus) },
             onOpenActivitySettings = { navController.navigateSafely(SettingsAniList) },
         )
