@@ -15,8 +15,8 @@ import java.util.concurrent.TimeUnit
 sealed interface FeedItem {
     val key: String
 
-    /** Start of a day's worth of activity, with how many activities fall under it. */
-    data class DayHeader(val startOfDay: Long, val activityCount: Int) : FeedItem {
+    /** Start of a day the feed below it belongs to. */
+    data class DayHeader(val startOfDay: Long) : FeedItem {
         override val key: String get() = "day_$startOfDay"
     }
 
@@ -58,38 +58,24 @@ fun buildFeedItems(
     val items = mutableListOf<FeedItem>()
     var index = 0
     var currentDay: Long? = null
-    var dayHeaderIndex = -1
-    var dayActivityCount = 0
-
-    fun closeDay() {
-        if (dayHeaderIndex >= 0) {
-            items[dayHeaderIndex] = FeedItem.DayHeader(currentDay!!, dayActivityCount)
-        }
-    }
 
     while (index < activities.size) {
         val activity = activities[index]
         val day = activity.timestamp.startOfDay(zone)
         if (day != currentDay) {
-            closeDay()
             currentDay = day
-            dayActivityCount = 0
-            dayHeaderIndex = items.size
-            items.add(FeedItem.DayHeader(day, 0))
+            items.add(FeedItem.DayHeader(day))
         }
 
         val run = if (groupListUpdates) activities.groupRunAt(index, day, zone) else emptyList()
         if (run.size >= MinGroupSize) {
             items.add(FeedItem.Group(run.toImmutableList()))
-            dayActivityCount += run.size
             index += run.size
         } else {
             items.add(FeedItem.Single(activity))
-            dayActivityCount++
             index++
         }
     }
-    closeDay()
 
     return items.toImmutableList()
 }

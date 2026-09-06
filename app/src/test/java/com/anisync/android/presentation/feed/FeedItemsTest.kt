@@ -105,7 +105,7 @@ class FeedItemsTest {
     }
 
     @Test
-    fun `each day gets a header carrying its activity count`() {
+    fun `each day gets its own header`() {
         val items = buildFeedItems(
             activities = listOf(
                 listActivity(id = 1, userId = 7, minutesBeforeNoon = 0),
@@ -118,7 +118,7 @@ class FeedItemsTest {
         )
 
         val headers = items.filterIsInstance<FeedItem.DayHeader>()
-        assertEquals(listOf(2, 2), headers.map { it.activityCount })
+        assertEquals(2, headers.size)
         assertEquals(2, headers.map { it.startOfDay }.distinct().size)
     }
 

@@ -1,8 +1,6 @@
 package com.anisync.android.presentation.feed.components
 
 import android.text.format.DateUtils
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,7 +26,6 @@ import java.time.temporal.ChronoUnit
 @Composable
 fun FeedDayHeader(
     startOfDay: Long,
-    activityCount: Int,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -46,22 +43,13 @@ fun FeedDayHeader(
         }
     }
 
-    Row(
-        modifier = modifier.padding(top = 8.dp, bottom = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Text(
-            text = activityCount.toString(),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
+    Text(
+        text = label,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = modifier.padding(top = 8.dp, bottom = 2.dp)
+    )
 }
 
 private fun daysAgo(startOfDay: Long): Long {
