@@ -96,7 +96,7 @@ fun FeedEmptyState(
         scope == FeedScope.FOLLOWING -> EmptyState(
             icon = Icons.Default.Group,
             title = stringResource(R.string.feed_empty_following_title),
-            description = stringResource(R.string.feed_empty_following_desc),
+            description = stringResource(R.string.feed_empty_following),
             actionLabel = stringResource(R.string.feed_empty_following_action),
             actionIcon = Icons.Default.Public,
             onAction = onSwitchToGlobal,
@@ -110,7 +110,7 @@ fun FeedEmptyState(
         else -> EmptyState(
             icon = Icons.Default.DynamicFeed,
             title = stringResource(R.string.feed_empty_global_title),
-            description = stringResource(R.string.feed_empty_global_desc),
+            description = stringResource(R.string.feed_empty_global),
             emblemShape = RoundedCornerShape(22.dp),
             emblemContainer = MaterialTheme.colorScheme.secondaryContainer,
             emblemContent = MaterialTheme.colorScheme.onSecondaryContainer,

@@ -16,9 +16,9 @@
     <string name="feed_scope_global">Global</string>
     <string name="feed_scope_following">Following</string>
     <string name="feed_empty_global_title">No activity yet</string>
-    <string name="feed_empty_global_desc">Nothing has been posted in this window. Pull down to refresh.</string>
+    <string name="feed_empty_global">Nothing has been posted in this window. Pull down to refresh.</string>
     <string name="feed_empty_following_title">Nobody to follow yet</string>
-    <string name="feed_empty_following_desc">Statuses and list updates from people you follow land here.</string>
+    <string name="feed_empty_following">Statuses and list updates from people you follow land here.</string>
     <string name="feed_empty_following_action">See the global feed</string>
     <string name="feed_empty_offline_title">Nothing loaded</string>
     <string name="feed_empty_offline_desc">The feed needs the network. Check your connection and pull to refresh.</string>
