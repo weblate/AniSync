@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.outlined.NotificationsNone
@@ -100,13 +99,14 @@ fun ActivityCard(
             onUserClick = onUserClick,
             onMediaClick = onMediaClick,
             onLastReplyClick = onLastReplyClick,
-            onLikeClick = onLikeClick
+            onLikeClick = onLikeClick,
+            onSubscribeClick = onSubscribeClick,
+            onDeleteClick = onDeleteClick
         )
         return
     }
 
     val containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-    var showActions by rememberSaveable { mutableStateOf(false) }
 
     Card(
         onClick = onClick,
@@ -134,7 +134,8 @@ fun ActivityCard(
                 activity = activity,
                 onSubscribeClick = onSubscribeClick,
                 onUserClick = onUserClick,
-                onMoreClick = { showActions = true }
+                onEditClick = onEditClick,
+                onDeleteClick = onDeleteClick
             )
 
             val isTextual = activity.type == ActivityType.TEXT || activity.type == ActivityType.MESSAGE
@@ -170,15 +171,6 @@ fun ActivityCard(
                 onLikeClick = onLikeClick
             )
         }
-    }
-
-    if (showActions) {
-        ActivityActionsSheet(
-            activity = activity,
-            onDismiss = { showActions = false },
-            onEditClick = onEditClick,
-            onDeleteClick = onDeleteClick
-        )
     }
 }
 
@@ -337,7 +329,8 @@ private fun ActivityCardHeader(
     activity: UserActivity,
     onSubscribeClick: (() -> Unit)?,
     onUserClick: (String) -> Unit,
-    onMoreClick: () -> Unit
+    onEditClick: (() -> Unit)?,
+    onDeleteClick: (() -> Unit)?
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -400,7 +393,7 @@ private fun ActivityCardHeader(
         }
 
         // Subscribe stays on the card because it is a state you read at a glance; share, the
-        // AniList link, report and the owner's own edit and delete live in the overflow sheet.
+        // AniList link and the owner's own edit and delete live in the overflow menu.
         Row(
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
@@ -420,14 +413,11 @@ private fun ActivityCardHeader(
                 }
             }
 
-            IconButton(onClick = onMoreClick, modifier = Modifier.size(36.dp)) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = stringResource(R.string.more_options),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
+            ActivityOverflowButton(
+                activity = activity,
+                onEditClick = onEditClick,
+                onDeleteClick = onDeleteClick
+            )
         }
     }
 }

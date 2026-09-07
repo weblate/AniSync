@@ -1261,11 +1261,6 @@
     <string name="activity_detail_wrote_to">%1$s wrote to %2$s</string>
     <string name="activity_last_reply">%1$s replied %2$s</string>
     <string name="activity_open_on_anilist">Open on AniList</string>
-    <string name="activity_report">Report</string>
-    <string name="activity_report_supporting">Handled on anilist.co</string>
-    <string name="activity_report_title">Report this activity?</string>
-    <string name="activity_report_body">Reports are handled on anilist.co. This opens the activity there, signed in as you, so you can send it from your account.</string>
-    <string name="activity_report_confirm">Open AniList</string>
     <string name="activity_delete_confirm_title">Delete activity?</string>
     <string name="activity_delete_confirm_body">This action cannot be undone.</string>
     <string name="reply_delete_confirm_title">Delete reply?</string>

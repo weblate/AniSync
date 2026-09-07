@@ -16,10 +16,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,6 +56,9 @@ import com.anisync.android.presentation.util.selectedPaneItem
  * header, a tinted box nested inside the card holding the cover, then an engagement footer, for
  * around 150dp of feed. The cover carries the identity here, the fact sits beside it, and the
  * replies and likes share the last line with whoever replied last.
+ *
+ * Subscribe and the overflow sit side by side at the trailing edge, in the order the status card
+ * puts them: a list update is worth following and worth sharing exactly as much as a status is.
  */
 @Composable
 internal fun ActivityListCard(
@@ -63,9 +70,12 @@ internal fun ActivityListCard(
     onUserClick: (String) -> Unit = {},
     onMediaClick: (Int) -> Unit = {},
     onLastReplyClick: (activityId: Int, replyId: Int) -> Unit = { _, _ -> },
-    onLikeClick: (() -> Unit)? = null
+    onLikeClick: (() -> Unit)? = null,
+    onSubscribeClick: (() -> Unit)? = null,
+    onDeleteClick: (() -> Unit)? = null
 ) {
     val shape = RoundedCornerShape(16.dp)
+
     Card(
         onClick = onClick,
         modifier = modifier
@@ -105,6 +115,40 @@ internal fun ActivityListCard(
                     onLastReplyClick = onLastReplyClick,
                     onCommentClick = onClick,
                     onLikeClick = onLikeClick
+                )
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (onSubscribeClick != null) {
+                    IconButton(onClick = onSubscribeClick, modifier = Modifier.size(32.dp)) {
+                        Icon(
+                            imageVector = if (activity.isSubscribed) {
+                                Icons.Filled.Notifications
+                            } else {
+                                Icons.Outlined.NotificationsNone
+                            },
+                            contentDescription = stringResource(
+                                if (activity.isSubscribed) {
+                                    R.string.cd_unsubscribe
+                                } else {
+                                    R.string.cd_subscribe
+                                }
+                            ),
+                            tint = if (activity.isSubscribed) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+                // No edit: a list update is server-derived, so AniList offers nothing to edit on it.
+                ActivityOverflowButton(
+                    activity = activity,
+                    buttonSize = 32.dp,
+                    iconSize = 18.dp,
+                    onDeleteClick = onDeleteClick
                 )
             }
         }
@@ -231,8 +275,7 @@ private fun ActivityListFooter(
         ActivityCounts(
             activity = activity,
             onCommentClick = onCommentClick,
-            onLikeClick = onLikeClick,
-            compact = true
+            onLikeClick = onLikeClick
         )
     }
 }
@@ -284,18 +327,22 @@ internal fun ActivityLastReply(
     }
 }
 
-/** Replies and likes, right-aligned so the thumb reaches them without crossing the card. */
+/**
+ * Replies and likes, right-aligned so the thumb reaches them without crossing the card.
+ *
+ * No container behind either: the tinted pills the status card used to wear made the same two
+ * counts look like two different controls next to a list update, and they cost the room the last
+ * reply needs on a compact row. The filled heart still carries the liked state.
+ */
 @Composable
 internal fun ActivityCounts(
     activity: UserActivity,
     onCommentClick: () -> Unit,
-    onLikeClick: (() -> Unit)?,
-    compact: Boolean = false
+    onLikeClick: (() -> Unit)?
 ) {
     val isLiked = activity.isLiked
-    val likeColor = if (isLiked) LikedColor else MaterialTheme.colorScheme.primary
     Row(
-        horizontalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         ActivityStatPill(
@@ -303,12 +350,7 @@ internal fun ActivityCounts(
             value = activity.replyCount,
             onClick = onCommentClick,
             contentDescription = stringResource(R.string.cd_comments),
-            contentColor = MaterialTheme.colorScheme.primary,
-            containerColor = if (compact) {
-                Color.Transparent
-            } else {
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-            }
+            contentColor = MaterialTheme.colorScheme.primary
         )
         ActivityStatPill(
             icon = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
@@ -317,8 +359,7 @@ internal fun ActivityCounts(
             contentDescription = stringResource(
                 if (isLiked) R.string.cd_unlike else R.string.cd_like
             ),
-            contentColor = likeColor,
-            containerColor = if (compact) Color.Transparent else likeColor.copy(alpha = 0.1f)
+            contentColor = if (isLiked) LikedColor else MaterialTheme.colorScheme.primary
         )
     }
 }
