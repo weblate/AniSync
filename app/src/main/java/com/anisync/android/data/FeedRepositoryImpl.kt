@@ -59,16 +59,20 @@ class FeedRepositoryImpl @Inject constructor(
             .doNotStore(true)
             .execute()
 
+        // A request that never made it carries an exception rather than GraphQL errors, and its
+        // data is null. Reading that as an empty page is how a rate limit came out as "no activity
+        // yet" instead of saying what happened.
+        response.exception?.let { throw it }
         if (response.hasErrors()) {
             throw Exception(response.errors?.firstOrNull()?.message ?: "Failed to load feed")
         }
+        val pageData = response.data?.Page ?: throw Exception("Failed to load feed")
 
         // Respect the viewer's AniList "display adult content" option (mirrored into AppSettings):
         // hide list activity for 18+ media, matching the website. Text/message activities carry no
         // media, so mediaIsAdult is false for them and they pass through untouched.
         val showAdult = appSettings.showAdultContent.value
-        val pageData = response.data?.Page
-        val items = pageData?.activities
+        val items = pageData.activities
             ?.filterNotNull()
             // Hide activity from users the viewer has blocked on AniList (issue #76). isBlocked is
             // selected inline on the feed query (not the shared ActivityFields fragment) — see Feed.graphql.
@@ -85,8 +89,8 @@ class FeedRepositoryImpl @Inject constructor(
 
         FeedPage(
             items = items,
-            hasNextPage = pageData?.pageInfo?.hasNextPage == true,
-            currentPage = pageData?.pageInfo?.currentPage ?: page
+            hasNextPage = pageData.pageInfo?.hasNextPage == true,
+            currentPage = pageData.pageInfo?.currentPage ?: page
         )
     }
 }
