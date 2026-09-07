@@ -88,70 +88,72 @@ internal fun ActivityListCard(
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp, pressedElevation = 4.dp)
     ) {
-        Row(
-            modifier = Modifier.padding(start = 10.dp, top = 10.dp, end = 12.dp, bottom = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        Column(
+            modifier = Modifier.padding(start = 10.dp, top = 10.dp, end = 12.dp, bottom = 10.dp)
         ) {
-            ActivityCover(activity = activity, onMediaClick = onMediaClick)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                ActivityCover(activity = activity, onMediaClick = onMediaClick)
 
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                if (showAuthor) {
-                    ActivityAuthorLine(activity = activity, onUserClick = onUserClick)
-                }
-                Text(
-                    text = activity.mediaTitle,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                ActivityProgressLine(activity = activity)
-                Spacer(Modifier.weight(1f))
-                ActivityListFooter(
-                    activity = activity,
-                    onLastReplyClick = onLastReplyClick,
-                    onCommentClick = onClick,
-                    onLikeClick = onLikeClick
-                )
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (onSubscribeClick != null) {
-                    IconButton(onClick = onSubscribeClick, modifier = Modifier.size(32.dp)) {
-                        Icon(
-                            imageVector = if (activity.isSubscribed) {
-                                Icons.Filled.Notifications
-                            } else {
-                                Icons.Outlined.NotificationsNone
-                            },
-                            contentDescription = stringResource(
-                                if (activity.isSubscribed) {
-                                    R.string.cd_unsubscribe
-                                } else {
-                                    R.string.cd_subscribe
-                                }
-                            ),
-                            tint = if (activity.isSubscribed) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                            modifier = Modifier.size(18.dp)
-                        )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    if (showAuthor) {
+                        ActivityAuthorLine(activity = activity, onUserClick = onUserClick)
                     }
+                    Text(
+                        text = activity.mediaTitle,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    ActivityProgressLine(activity = activity)
                 }
-                // No edit: a list update is server-derived, so AniList offers nothing to edit on it.
-                ActivityOverflowButton(
-                    activity = activity,
-                    buttonSize = 32.dp,
-                    iconSize = 18.dp,
-                    onDeleteClick = onDeleteClick
-                )
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (onSubscribeClick != null) {
+                        IconButton(onClick = onSubscribeClick, modifier = Modifier.size(32.dp)) {
+                            Icon(
+                                imageVector = if (activity.isSubscribed) {
+                                    Icons.Filled.Notifications
+                                } else {
+                                    Icons.Outlined.NotificationsNone
+                                },
+                                contentDescription = stringResource(
+                                    if (activity.isSubscribed) {
+                                        R.string.cd_unsubscribe
+                                    } else {
+                                        R.string.cd_subscribe
+                                    }
+                                ),
+                                tint = if (activity.isSubscribed) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                    // No edit: a list update is server-derived, so AniList offers nothing to edit
+                    // on it.
+                    ActivityOverflowButton(
+                        activity = activity,
+                        buttonSize = 32.dp,
+                        iconSize = 18.dp,
+                        onDeleteClick = onDeleteClick
+                    )
+                }
             }
+
+            ActivityListFooter(
+                activity = activity,
+                onLastReplyClick = onLastReplyClick,
+                onCommentClick = onClick,
+                onLikeClick = onLikeClick
+            )
         }
     }
 }
@@ -265,7 +267,9 @@ private fun ActivityListFooter(
     onLikeClick: (() -> Unit)?
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
