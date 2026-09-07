@@ -196,26 +196,30 @@ fun FeedScreen(
                 }
 
                 uiState.errorMessage != null && uiState.items.isEmpty() -> {
-                    FeedOfflineState(
-                        rateLimited = uiState.errorCode == RATE_LIMIT_CODE,
-                        onRetry = { viewModel.onAction(FeedAction.Refresh) },
-                        modifier = Modifier.fillMaxSize()
-                    )
+                    PullableState {
+                        FeedOfflineState(
+                            rateLimited = uiState.errorCode == RATE_LIMIT_CODE,
+                            onRetry = { viewModel.onAction(FeedAction.Refresh) },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
 
                 uiState.items.isEmpty() -> {
-                    FeedEmptyState(
-                        scope = uiState.scope,
-                        filter = uiState.filter,
-                        mediaType = uiState.mediaType,
-                        onSwitchToGlobal = {
-                            viewModel.onAction(FeedAction.OnScopeChange(FeedScope.GLOBAL))
-                        },
-                        onClearFilters = {
-                            viewModel.onAction(FeedAction.OnFilterChange(FeedFilter.ALL))
-                        },
-                        modifier = Modifier.fillMaxSize()
-                    )
+                    PullableState {
+                        FeedEmptyState(
+                            scope = uiState.scope,
+                            filter = uiState.filter,
+                            mediaType = uiState.mediaType,
+                            onSwitchToGlobal = {
+                                viewModel.onAction(FeedAction.OnScopeChange(FeedScope.GLOBAL))
+                            },
+                            onClearFilters = {
+                                viewModel.onAction(FeedAction.OnFilterChange(FeedFilter.ALL))
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
 
                 else -> {
@@ -321,5 +325,23 @@ fun FeedScreen(
             onSubmit = { body -> viewModel.onAction(FeedAction.SubmitEdit(body)) },
             onDismiss = { viewModel.onAction(FeedAction.DismissEdit) }
         )
+    }
+}
+
+/**
+ * A full-screen state the reader can still pull down on.
+ *
+ * Pull to refresh listens for nested scroll, and a centred column reports none, so every empty and
+ * error state used to ignore the gesture its own copy told the reader to use. One item as tall as
+ * the viewport keeps the state centred and hands the pull through.
+ */
+@Composable
+private fun PullableState(content: @Composable () -> Unit) {
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+        item {
+            Box(modifier = Modifier.fillParentMaxSize()) {
+                content()
+            }
+        }
     }
 }
