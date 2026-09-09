@@ -1027,7 +1027,8 @@ fun DetailsPageContent(
     // app bar, so the two never read as duplicates. Both positions come from real measurements, not
     // a scroll-offset lookup, so a resize can't make them drift.
     val density = LocalDensity.current
-    val dockPx = with(density) { 64.dp.roundToPx() }.toFloat()
+    // The app bar draws under the status bar, so the dock line is its full height, inset included.
+    val dockPx = with(density) { (statusBarInset() + 64.dp).roundToPx() }.toFloat()
     var contentTopWindow by remember { mutableFloatStateOf(0f) }
     var inlineTabsTopWindow by remember { mutableFloatStateOf(Float.MAX_VALUE) }
     val tabsDocked by remember {
