@@ -126,6 +126,8 @@ import com.anisync.android.presentation.components.CustomPullToRefreshIndicator
 import com.anisync.android.presentation.components.bannerChromeColors
 import com.anisync.android.presentation.components.bannerChromeContainer
 import com.anisync.android.presentation.components.bannerChromeTint
+import com.anisync.android.presentation.components.bannerScrimBrush
+import com.anisync.android.presentation.components.bannerScrimHeight
 import com.anisync.android.presentation.components.alert.rememberRateLimitedRefresh
 import com.anisync.android.presentation.components.SegmentedTabGroup
 import com.anisync.android.presentation.components.HeaderLevel
@@ -1638,9 +1640,6 @@ private val MediaDetails.headerBanner: String?
 /** Banner artwork height below the status bar; the bleed is added on top. */
 private val BannerHeight = 220.dp
 
-/** The dark gradient that keeps the system clock and back arrow legible over bright artwork. */
-private val BannerScrimHeight = 28.dp
-
 /** Zero inside a two-pane detail pane, where the host has already cleared the bar. */
 @Composable
 private fun statusBarInset(): Dp =
@@ -1839,22 +1838,13 @@ private fun BannerGradients(themeBackground: Color) {
  */
 @Composable
 private fun StatusBarScrim(alpha: Float, modifier: Modifier = Modifier) {
-    val topInset = statusBarInset()
-    val scrimHeight = topInset + BannerScrimHeight
-    val scrimBrush = remember(scrimHeight) {
-        val hold = (1f - BannerScrimHeight / scrimHeight).coerceIn(0f, 1f)
-        Brush.verticalGradient(
-            0f to Color.Black.copy(alpha = 0.55f),
-            hold to Color.Black.copy(alpha = 0.40f),
-            1f to Color.Transparent
-        )
-    }
+    val scrimHeight = bannerScrimHeight()
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(scrimHeight)
             .graphicsLayer { this.alpha = alpha }
-            .background(scrimBrush)
+            .background(bannerScrimBrush(scrimHeight))
     )
 }
 
