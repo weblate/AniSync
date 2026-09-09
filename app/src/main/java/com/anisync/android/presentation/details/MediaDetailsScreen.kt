@@ -406,7 +406,8 @@ fun MediaDetailsScreen(
                                         isFavorite = details.isFavourite,
                                         onClick = viewModel::toggleFavourite,
                                         inactiveColor = chromeTint,
-                                        containerColor = bannerChromeContainer(overBanner)
+                                        containerColor = bannerChromeContainer(overBanner),
+                                        boxSize = 40.dp
                                     )
                                     IconButton(
                                         onClick = { showShareImageSheet = true },
@@ -1835,9 +1836,6 @@ private fun BannerGradients(themeBackground: Color) {
  * Dark top-to-transparent gradient over the status bar, mirroring the Google Play Store detail page.
  * Keeps the system icons (and the back arrow) readable over a bright banner while the app bar is
  * transparent; [alpha] is driven to 0 as the opaque app bar scrolls in.
- *
- * Holds near full strength across the status-bar band before dissolving; a plain ramp over the same
- * span was already a third as strong by the time it reached the clock.
  */
 @Composable
 private fun StatusBarScrim(alpha: Float, modifier: Modifier = Modifier) {

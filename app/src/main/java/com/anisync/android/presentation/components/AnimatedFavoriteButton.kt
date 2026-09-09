@@ -58,7 +58,9 @@ fun AnimatedFavoriteButton(
     activeColor: Color = Color(0xFFFF1744), // Material Red A400
     inactiveColor: Color = LocalContentColor.current,
     /** Scrim disc behind the heart, for chrome sitting on a banner. */
-    containerColor: Color = Color.Transparent
+    containerColor: Color = Color.Transparent,
+    /** Fixed so the row can't reflow as [containerColor] animates. */
+    boxSize: Dp = iconSize + 8.dp
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val haptic = rememberHapticFeedback()
@@ -135,9 +137,7 @@ fun AnimatedFavoriteButton(
 
     Box(
         modifier = modifier
-            // Matches IconButton once it carries a scrim, so it lines up with the rest of the
-            // chrome; otherwise the tighter box that prevents layout shift inline.
-            .size(if (containerColor == Color.Transparent) iconSize + 8.dp else 40.dp)
+            .size(boxSize)
             .clip(CircleShape)
             .background(containerColor)
             .clickable(

@@ -191,7 +191,8 @@ fun StudioDetailsScreen(
                             isFavorite = details.isFavourite,
                             onClick = viewModel::toggleFavourite,
                             inactiveColor = iconTint,
-                            containerColor = bannerChromeContainer(overBanner)
+                            containerColor = bannerChromeContainer(overBanner),
+                            boxSize = 40.dp
                         )
                     }
                     IconButton(
