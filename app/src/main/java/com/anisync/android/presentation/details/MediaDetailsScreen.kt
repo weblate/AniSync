@@ -46,14 +46,12 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.ButtonDefaults
@@ -63,7 +61,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -124,7 +121,11 @@ import com.anisync.android.domain.MediaDetails
 import com.anisync.android.domain.coverageEpisodeCount
 import com.anisync.android.domain.MediaFollowingEntry
 import com.anisync.android.domain.url
+import com.anisync.android.presentation.components.AnimatedFavoriteButton
 import com.anisync.android.presentation.components.CustomPullToRefreshIndicator
+import com.anisync.android.presentation.components.bannerChromeColors
+import com.anisync.android.presentation.components.bannerChromeContainer
+import com.anisync.android.presentation.components.bannerChromeTint
 import com.anisync.android.presentation.components.alert.rememberRateLimitedRefresh
 import com.anisync.android.presentation.components.SegmentedTabGroup
 import com.anisync.android.presentation.components.HeaderLevel
@@ -356,21 +357,9 @@ fun MediaDetailsScreen(
                         (state as? DetailsUiState.Success)?.details?.getTitle(titleLanguage) ?: ""
                     }
 
-                    // Over the banner the chrome sits on artwork of any brightness, so every
-                    // button carries a scrim of its own. Off the banner there is nothing to sit
-                    // on and the icons take the theme colour.
                     val overBanner = !isScrolled && bannerVisible
-                    val chromeTint = animateColorAsState(
-                        if (overBanner) Color.White else MaterialTheme.colorScheme.onSurface,
-                        label = "chromeIconTint"
-                    ).value
-                    val chromeColors = IconButtonDefaults.iconButtonColors(
-                        containerColor = animateColorAsState(
-                            if (overBanner) Color.Black.copy(alpha = 0.36f) else Color.Transparent,
-                            label = "chromeScrim"
-                        ).value,
-                        contentColor = chromeTint
-                    )
+                    val chromeTint = bannerChromeTint(overBanner)
+                    val chromeColors = bannerChromeColors(overBanner)
 
                     with(sharedTransitionScope) {
                         TopAppBar(
@@ -413,18 +402,12 @@ fun MediaDetailsScreen(
                                 // loudest controls on the page — a filled 56dp button and a
                                 // full-width pill — above a page whose job is tracking.
                                 (state as? DetailsUiState.Success)?.details?.let { details ->
-                                    IconButton(
+                                    AnimatedFavoriteButton(
+                                        isFavorite = details.isFavourite,
                                         onClick = viewModel::toggleFavourite,
-                                        colors = chromeColors
-                                    ) {
-                                        Icon(
-                                            imageVector = if (details.isFavourite) Icons.Filled.Favorite
-                                            else Icons.Outlined.FavoriteBorder,
-                                            contentDescription = stringResource(R.string.a11y_action_toggle_favorite),
-                                            tint = if (details.isFavourite) MaterialTheme.colorScheme.error
-                                            else chromeTint
-                                        )
-                                    }
+                                        inactiveColor = chromeTint,
+                                        containerColor = bannerChromeContainer(overBanner)
+                                    )
                                     IconButton(
                                         onClick = { showShareImageSheet = true },
                                         colors = chromeColors

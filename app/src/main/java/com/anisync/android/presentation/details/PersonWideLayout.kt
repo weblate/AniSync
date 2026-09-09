@@ -492,7 +492,7 @@ fun BannerIconButton(
         modifier = modifier
             .size(40.dp)
             .clip(CircleShape)
-            .background(Color.Black.copy(alpha = 0.32f))
+            .background(Color.Black.copy(alpha = 0.36f))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
