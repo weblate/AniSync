@@ -31,7 +31,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -54,6 +53,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.ButtonDefaults
@@ -103,15 +103,14 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
@@ -284,8 +283,8 @@ fun MediaDetailsScreen(
         is DetailsUiState.Error -> false
         DetailsUiState.Loading -> true
     }
-    // Status-bar icon appearance follows the app theme (set globally): the banner no longer draws
-    // under the status bar — a root status-bar scrim sits above it — so no per-screen override.
+    // No per-screen bar-appearance override: the icons follow the app theme, and recent platform
+    // builds pick them from the content behind the bar anyway. Legibility is the scrim's job.
 
     val isDetailsEnteringFromBackStack by remember {
         derivedStateOf {
@@ -460,9 +459,7 @@ fun MediaDetailsScreen(
                                 ).value,
                                 titleContentColor = MaterialTheme.colorScheme.onSurface,
                                 actionIconContentColor = MaterialTheme.colorScheme.onSurface
-                            ),
-                            // Root already insets below the status bar; don't add it again here.
-                            windowInsets = WindowInsets(0, 0, 0, 0)
+                            )
                         )
                     }
                 }
@@ -475,9 +472,7 @@ fun MediaDetailsScreen(
                         CustomPullToRefreshIndicator(
                             isRefreshing = isRefreshing,
                             state = pullToRefreshState,
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .windowInsetsPadding(WindowInsets.statusBars)
+                            modifier = Modifier.align(Alignment.TopCenter)
                         )
                     },
                     modifier = Modifier
@@ -1647,6 +1642,17 @@ fun DetailsPageContent(
 private val MediaDetails.headerBanner: String?
     get() = bannerUrl ?: trailer?.thumbnail
 
+/** Banner artwork height below the status bar; the bleed is added on top. */
+private val BannerHeight = 220.dp
+
+/** The dark gradient that keeps the system clock and back arrow legible over bright artwork. */
+private val BannerScrimHeight = 28.dp
+
+/** Zero inside a two-pane detail pane, where the host has already cleared the bar. */
+@Composable
+private fun statusBarInset(): Dp =
+    WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PageHeaderSection(
@@ -1689,12 +1695,15 @@ fun PageHeaderSection(
         bannerModel != null && bannerModel == details.trailer?.thumbnail
     }
 
+    // The header carries the status-bar height so the artwork fills it and the rest stays put.
+    val topInset = statusBarInset()
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             // Nothing to show means no banner rather than the cover stretched across the top as a
             // stand-in, so the header shrinks to the cover and the title.
-            .height(if (bannerModel != null) 330.dp else 250.dp)
+            .height(topInset + if (bannerModel != null) 330.dp else 250.dp)
     ) {
         // 1. Banner Image Layer
         if (bannerModel != null) {
@@ -1703,7 +1712,7 @@ fun PageHeaderSection(
                 needsZoom = needsZoom,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(220.dp)
+                    .height(topInset + BannerHeight)
             )
         }
 
@@ -1720,7 +1729,10 @@ fun PageHeaderSection(
                 },
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(end = dimensionResource(R.dimen.spacing_medium), top = 104.dp)
+                    .padding(
+                        end = dimensionResource(R.dimen.spacing_medium),
+                        top = topInset + 104.dp
+                    )
             )
         }
 
@@ -1818,16 +1830,24 @@ private fun BannerGradients(themeBackground: Color) {
 }
 
 /**
- * Dark top-to-transparent gradient pinned behind the status bar, mirroring the Google Play Store
- * detail page. Keeps the white system icons (and back arrow) readable over a bright banner while
- * the app bar is transparent; [alpha] is driven to 0 as the opaque app bar scrolls in.
+ * Dark top-to-transparent gradient over the status bar, mirroring the Google Play Store detail page.
+ * Keeps the system icons (and the back arrow) readable over a bright banner while the app bar is
+ * transparent; [alpha] is driven to 0 as the opaque app bar scrolls in.
+ *
+ * Holds near full strength across the status-bar band before dissolving; a plain ramp over the same
+ * span was already a third as strong by the time it reached the clock.
  */
 @Composable
 private fun StatusBarScrim(alpha: Float, modifier: Modifier = Modifier) {
-    // Root insets below the status bar, so this banner scrim only needs its own short height.
-    val scrimHeight = 28.dp
-    val scrimBrush = remember {
-        Brush.verticalGradient(colors = listOf(Color.Black.copy(alpha = 0.45f), Color.Transparent))
+    val topInset = statusBarInset()
+    val scrimHeight = topInset + BannerScrimHeight
+    val scrimBrush = remember(scrimHeight) {
+        val hold = (1f - BannerScrimHeight / scrimHeight).coerceIn(0f, 1f)
+        Brush.verticalGradient(
+            0f to Color.Black.copy(alpha = 0.55f),
+            hold to Color.Black.copy(alpha = 0.40f),
+            1f to Color.Transparent
+        )
     }
     Box(
         modifier = modifier

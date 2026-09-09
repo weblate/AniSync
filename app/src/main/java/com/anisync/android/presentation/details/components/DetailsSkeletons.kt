@@ -4,6 +4,9 @@ import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -83,16 +86,18 @@ fun DetailsSkeletonContent(
     ) {
         // Header Skeleton (Cover, Banner, Title)
         item(key = "header_skeleton") {
+            // Matches the real header, which carries the status-bar height.
+            val topInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(330.dp)
+                    .height(topInset + 330.dp)
             ) {
                 // Banner Image Layer
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(220.dp)
+                        .height(topInset + 220.dp)
                         .shimmerEffect()
                 )
 
