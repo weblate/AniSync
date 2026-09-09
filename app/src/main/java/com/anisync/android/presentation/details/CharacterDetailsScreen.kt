@@ -248,7 +248,7 @@ fun CharacterDetailsScreen(
         ) {
             when (val state = uiState) {
                 is CharacterDetailsUiState.Loading -> {
-                    CharacterSkeletonContent(onBackClick = onBackClick)
+                    CharacterSkeletonContent()
                 }
 
                 is CharacterDetailsUiState.Success -> {

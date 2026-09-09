@@ -235,7 +235,7 @@ fun StudioDetailsScreen(
         ) {
             when (val state = uiState) {
                 is StudioDetailsUiState.Loading -> {
-                    CharacterSkeletonContent(onBackClick = onBackClick)
+                    CharacterSkeletonContent()
                 }
 
                 is StudioDetailsUiState.Success -> {

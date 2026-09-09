@@ -237,7 +237,7 @@ fun StaffDetailsScreen(
         ) {
             when (val state = uiState) {
                 is StaffDetailsUiState.Loading -> {
-                    CharacterSkeletonContent(onBackClick = onBackClick)
+                    CharacterSkeletonContent()
                 }
 
                 is StaffDetailsUiState.Success -> {
