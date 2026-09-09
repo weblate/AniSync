@@ -80,6 +80,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -946,8 +947,9 @@ fun DetailsPageContent(
         details.reviews.distinctBy { it.id }.take(5)
     }
 
-    // ImageViewerDialog state for cover/banner image
+    // ImageViewerDialog state for cover/banner image; it opens on whichever was tapped.
     var showImageViewer by rememberSaveable { mutableStateOf(false) }
+    var viewerIndex by rememberSaveable { mutableIntStateOf(0) }
     val viewerImages = remember(details.cover.url() ?: details.coverUrl, details.bannerUrl) {
         listOfNotNull(details.coverUrl, details.bannerUrl)
     }
@@ -1065,7 +1067,14 @@ fun DetailsPageContent(
                     sharedTransitionScope = sharedTransitionScope,
                     animatedVisibilityScope = animatedVisibilityScope,
                     titleLanguage = titleLanguage,
-                    onCoverClick = { showImageViewer = true }
+                    onCoverClick = {
+                        viewerIndex = 0
+                        showImageViewer = true
+                    },
+                    onBannerClick = {
+                        viewerIndex = viewerImages.indexOf(details.bannerUrl).coerceAtLeast(0)
+                        showImageViewer = true
+                    }
                 )
             }
 
@@ -1617,7 +1626,7 @@ fun DetailsPageContent(
     if (showImageViewer) {
         ImageViewerDialog(
             imageUrls = viewerImages,
-            initialIndex = 0,
+            initialIndex = viewerIndex,
             onDismiss = { showImageViewer = false }
         )
     }
@@ -1662,6 +1671,7 @@ fun PageHeaderSection(
     animatedVisibilityScope: AnimatedVisibilityScope,
     titleLanguage: TitleLanguage,
     onCoverClick: () -> Unit = {},
+    onBannerClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -1705,14 +1715,22 @@ fun PageHeaderSection(
             // stand-in, so the header shrinks to the cover and the title.
             .height(topInset + if (bannerModel != null) 330.dp else 250.dp)
     ) {
-        // 1. Banner Image Layer
+        // 1. Banner Image Layer. Only real artwork opens the viewer: the trailer thumbnail that
+        // stands in for a missing banner isn't in the viewer's list.
         if (bannerModel != null) {
+            val isArtwork = details.bannerUrl != null
             BannerImage(
                 model = bannerModel,
                 needsZoom = needsZoom,
+                contentDescription = if (isArtwork) stringResource(R.string.cd_media_banner)
+                else null,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(topInset + BannerHeight)
+                    .then(
+                        if (isArtwork) Modifier.clickable(onClick = onBannerClick)
+                        else Modifier
+                    )
             )
         }
 
@@ -1762,7 +1780,8 @@ fun PageHeaderSection(
 private fun BannerImage(
     model: Any?,
     needsZoom: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    contentDescription: String? = null
 ) {
     val contentScale = remember(needsZoom) {
         if (needsZoom) {
@@ -1789,7 +1808,7 @@ private fun BannerImage(
     Box(modifier = modifier.clip(RectangleShape)) {
         AsyncImage(
             model = model,
-            contentDescription = null,
+            contentDescription = contentDescription,
             contentScale = contentScale,
             alignment = Alignment.Center,
             modifier = Modifier

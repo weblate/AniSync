@@ -1863,6 +1863,7 @@
     <string name="cd_trending_carousel">Trending carousel</string>
     <string name="cd_clear_media_filter">Clear media filter</string>
     <string name="cd_media_cover">Media cover</string>
+    <string name="cd_media_banner">Media banner</string>
     <string name="cd_show_tab">Show tab</string>
     <string name="cd_hide_tab">Hide tab</string>
     <string name="cd_cover_quality_preview">Cover quality preview</string>
