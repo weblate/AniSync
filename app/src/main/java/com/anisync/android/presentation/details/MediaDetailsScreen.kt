@@ -157,6 +157,7 @@ import com.anisync.android.presentation.details.components.ReviewsListSheet
 import com.anisync.android.presentation.details.components.StaffItem
 import com.anisync.android.presentation.details.components.mediaStatsTabContent
 import com.anisync.android.presentation.util.AppMotion
+import com.anisync.android.presentation.util.LocalAppSettings
 import com.anisync.android.presentation.util.LocalPaneIsRoot
 import com.anisync.android.presentation.util.TransitionKeys
 import com.anisync.android.presentation.util.formatAsTitle
@@ -168,6 +169,9 @@ import com.anisync.android.presentation.share.MediaShareCard
 import com.anisync.android.presentation.share.ShareCardTemplate
 import com.anisync.android.presentation.share.ShareImageSheet
 import com.anisync.android.presentation.share.parseCoverColor
+import com.anisync.android.ui.theme.mediaArtworkColorScheme
+import com.anisync.android.ui.theme.mediaArtworkSeedColor
+import com.anisync.android.ui.theme.resolveDarkTheme
 import com.anisync.android.util.AniListUrls
 import com.anisync.android.util.getTitle
 
@@ -347,337 +351,367 @@ fun MediaDetailsScreen(
         }
     }
 
-    with(sharedTransitionScope) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Scaffold(
-                containerColor = MaterialTheme.colorScheme.background,
-                contentWindowInsets = ScaffoldDefaults.contentWindowInsets,
-                topBar = {
-                    val state = uiState
+    // Everything the page draws sits inside the override: chrome, banner blend, tabs and sheets.
+    MediaArtworkThemeOverride(
+        coverColor = (uiState as? DetailsUiState.Success)?.details?.coverColor
+    ) {
+        with(sharedTransitionScope) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                Scaffold(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    contentWindowInsets = ScaffoldDefaults.contentWindowInsets,
+                    topBar = {
+                        val state = uiState
 
-                    val appBarTitle = remember(state, titleLanguage) {
-                        (state as? DetailsUiState.Success)?.details?.getTitle(titleLanguage) ?: ""
-                    }
+                        val appBarTitle = remember(state, titleLanguage) {
+                            (state as? DetailsUiState.Success)?.details?.getTitle(titleLanguage) ?: ""
+                        }
 
-                    val overBanner = !isScrolled && bannerVisible
-                    val chromeTint = bannerChromeTint(overBanner)
-                    val chromeColors = bannerChromeColors(overBanner)
+                        val overBanner = !isScrolled && bannerVisible
+                        val chromeTint = bannerChromeTint(overBanner)
+                        val chromeColors = bannerChromeColors(overBanner)
 
-                    with(sharedTransitionScope) {
-                        TopAppBar(
-                            modifier = Modifier
-                                .renderInSharedTransitionScopeOverlay(
-                                    zIndexInOverlay = 1f,
-                                    renderInOverlay = { shouldRenderChromeInOverlay }
-                                )
-                                .graphicsLayer {
-                                    alpha =
-                                        if (shouldRenderChromeInOverlay) chromeOverlayAlpha else 1f
-                                },
-                            title = {
-                                AnimatedVisibility(
-                                    visible = isScrolled,
-                                    enter = fadeIn(),
-                                    exit = fadeOut()
-                                ) {
-                                    Text(
-                                        text = appBarTitle,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        style = MaterialTheme.typography.titleLarge
+                        with(sharedTransitionScope) {
+                            TopAppBar(
+                                modifier = Modifier
+                                    .renderInSharedTransitionScopeOverlay(
+                                        zIndexInOverlay = 1f,
+                                        renderInOverlay = { shouldRenderChromeInOverlay }
                                     )
-                                }
-                            },
-                            navigationIcon = {
-                                if (!LocalPaneIsRoot.current) {
-                                    IconButton(onClick = onBackClick, colors = chromeColors) {
-                                        Icon(
-                                            imageVector = navigationIcon,
-                                            contentDescription = stringResource(R.string.back),
-                                            tint = chromeTint
-                                        )
-                                    }
-                                }
-                            },
-                            actions = {
-                                // Favourite and share live here now. They used to be the two
-                                // loudest controls on the page — a filled 56dp button and a
-                                // full-width pill — above a page whose job is tracking.
-                                (state as? DetailsUiState.Success)?.details?.let { details ->
-                                    AnimatedFavoriteButton(
-                                        isFavorite = details.isFavourite,
-                                        onClick = viewModel::toggleFavourite,
-                                        inactiveColor = chromeTint,
-                                        containerColor = bannerChromeContainer(overBanner),
-                                        boxSize = 40.dp
-                                    )
-                                    IconButton(
-                                        onClick = { showShareImageSheet = true },
-                                        colors = chromeColors
+                                    .graphicsLayer {
+                                        alpha =
+                                            if (shouldRenderChromeInOverlay) chromeOverlayAlpha else 1f
+                                    },
+                                title = {
+                                    AnimatedVisibility(
+                                        visible = isScrolled,
+                                        enter = fadeIn(),
+                                        exit = fadeOut()
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Filled.Share,
-                                            contentDescription = stringResource(R.string.action_share),
-                                            tint = chromeTint
+                                        Text(
+                                            text = appBarTitle,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            style = MaterialTheme.typography.titleLarge
                                         )
                                     }
-                                }
+                                },
+                                navigationIcon = {
+                                    if (!LocalPaneIsRoot.current) {
+                                        IconButton(onClick = onBackClick, colors = chromeColors) {
+                                            Icon(
+                                                imageVector = navigationIcon,
+                                                contentDescription = stringResource(R.string.back),
+                                                tint = chromeTint
+                                            )
+                                        }
+                                    }
+                                },
+                                actions = {
+                                    // Favourite and share live here now. They used to be the two
+                                    // loudest controls on the page — a filled 56dp button and a
+                                    // full-width pill — above a page whose job is tracking.
+                                    (state as? DetailsUiState.Success)?.details?.let { details ->
+                                        AnimatedFavoriteButton(
+                                            isFavorite = details.isFavourite,
+                                            onClick = viewModel::toggleFavourite,
+                                            inactiveColor = chromeTint,
+                                            containerColor = bannerChromeContainer(overBanner),
+                                            boxSize = 40.dp
+                                        )
+                                        IconButton(
+                                            onClick = { showShareImageSheet = true },
+                                            colors = chromeColors
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Filled.Share,
+                                                contentDescription = stringResource(R.string.action_share),
+                                                tint = chromeTint
+                                            )
+                                        }
+                                    }
 
-                                // At a two-pane detail root the close (✕) sits on the trailing edge
-                                // (easy right-thumb reach) instead of a leading back arrow.
-                                if (LocalPaneIsRoot.current) {
-                                    IconButton(onClick = onBackClick, colors = chromeColors) {
-                                        Icon(
-                                            imageVector = Icons.Filled.Close,
-                                            contentDescription = stringResource(R.string.pane_close),
-                                            tint = chromeTint
-                                        )
+                                    // At a two-pane detail root the close (✕) sits on the trailing edge
+                                    // (easy right-thumb reach) instead of a leading back arrow.
+                                    if (LocalPaneIsRoot.current) {
+                                        IconButton(onClick = onBackClick, colors = chromeColors) {
+                                            Icon(
+                                                imageVector = Icons.Filled.Close,
+                                                contentDescription = stringResource(R.string.pane_close),
+                                                tint = chromeTint
+                                            )
+                                        }
                                     }
-                                }
-                            },
-                            colors = TopAppBarDefaults.topAppBarColors(
-                                // Animated by real scroll overlap (see overlappedFraction); no
-                                // scrollBehavior, whose nested-scroll bookkeeping surfaced the
-                                // bar during pull-to-refresh.
-                                containerColor = animateColorAsState(
-                                    if (isScrolled) MaterialTheme.colorScheme.surfaceContainer
-                                    else Color.Transparent,
-                                    label = "DetailsAppBarContainer"
-                                ).value,
-                                titleContentColor = MaterialTheme.colorScheme.onSurface,
-                                actionIconContentColor = MaterialTheme.colorScheme.onSurface
+                                },
+                                colors = TopAppBarDefaults.topAppBarColors(
+                                    // Animated by real scroll overlap (see overlappedFraction); no
+                                    // scrollBehavior, whose nested-scroll bookkeeping surfaced the
+                                    // bar during pull-to-refresh.
+                                    containerColor = animateColorAsState(
+                                        if (isScrolled) MaterialTheme.colorScheme.surfaceContainer
+                                        else Color.Transparent,
+                                        label = "DetailsAppBarContainer"
+                                    ).value,
+                                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
+                                )
                             )
-                        )
+                        }
                     }
-                }
-            ) { paddingValues ->
-                PullToRefreshBox(
-                    isRefreshing = isRefreshing,
-                    state = pullToRefreshState,
-                    onRefresh = rememberRateLimitedRefresh { viewModel.refresh() },
-                    indicator = {
-                        CustomPullToRefreshIndicator(
-                            isRefreshing = isRefreshing,
-                            state = pullToRefreshState,
-                            modifier = Modifier.align(Alignment.TopCenter)
-                        )
-                    },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(bottom = paddingValues.calculateBottomPadding())
-                ) {
-                    Box(
+                ) { paddingValues ->
+                    PullToRefreshBox(
+                        isRefreshing = isRefreshing,
+                        state = pullToRefreshState,
+                        onRefresh = rememberRateLimitedRefresh { viewModel.refresh() },
+                        indicator = {
+                            CustomPullToRefreshIndicator(
+                                isRefreshing = isRefreshing,
+                                state = pullToRefreshState,
+                                modifier = Modifier.align(Alignment.TopCenter)
+                            )
+                        },
                         modifier = Modifier
                             .fillMaxSize()
-                            // Note: We intentionally IGNORE top padding here to let the content
-                            // (specifically the header image) draw behind the transparent status bar.
-                            .sharedBounds(
-                                sharedContentState = rememberSharedContentState(key = containerKey),
-                                animatedVisibilityScope = animatedVisibilityScope,
-                                boundsTransform = { _, _ -> spatialSpec },
-                                clipInOverlayDuringTransition = OverlayClip(RoundedCornerShape(0.dp))
-                            )
+                            .padding(bottom = paddingValues.calculateBottomPadding())
                     ) {
-                        when (val state = uiState) {
-                            is DetailsUiState.Loading -> DetailsSkeletonContent(onBackClick = onBackClick)
-                        is DetailsUiState.Success -> {
-                            val context = LocalContext.current
-                            DetailsPageContent(
-                                details = state.details,
-                                sourceScreen = sourceScreen,
-                                listState = listState,
-                                selectedTab = selectedTab,
-                                onTabSelected = { selectedTab = it },
-                                following = following,
-                                hasMoreFollowing = hasMoreFollowing,
-                                cast = cast,
-                                staff = staff,
-                                onEnsureCastLoaded = viewModel::ensureCastLoaded,
-                                onLoadMoreCast = viewModel::loadMoreCast,
-                                onCastSortChange = viewModel::setCastSort,
-                                onEnsureStaffLoaded = viewModel::ensureStaffLoaded,
-                                onLoadMoreStaff = viewModel::loadMoreStaff,
-                                onStaffSortChange = viewModel::setStaffSort,
-                                mediaStats = mediaStats,
-                                onEnsureStatsLoaded = viewModel::ensureStatsLoaded,
-                                onRetryStats = viewModel::retryStats,
-                                onRankingClick = { ranking ->
-                                    viewModel.openDiscoverSearch(
-                                        rankingSearchFilters(
-                                            ranking,
-                                            isManga = state.details.type == com.anisync.android.type.MediaType.MANGA
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                // Note: We intentionally IGNORE top padding here to let the content
+                                // (specifically the header image) draw behind the transparent status bar.
+                                .sharedBounds(
+                                    sharedContentState = rememberSharedContentState(key = containerKey),
+                                    animatedVisibilityScope = animatedVisibilityScope,
+                                    boundsTransform = { _, _ -> spatialSpec },
+                                    clipInOverlayDuringTransition = OverlayClip(RoundedCornerShape(0.dp))
+                                )
+                        ) {
+                            when (val state = uiState) {
+                                is DetailsUiState.Loading -> DetailsSkeletonContent(onBackClick = onBackClick)
+                            is DetailsUiState.Success -> {
+                                val context = LocalContext.current
+                                DetailsPageContent(
+                                    details = state.details,
+                                    sourceScreen = sourceScreen,
+                                    listState = listState,
+                                    selectedTab = selectedTab,
+                                    onTabSelected = { selectedTab = it },
+                                    following = following,
+                                    hasMoreFollowing = hasMoreFollowing,
+                                    cast = cast,
+                                    staff = staff,
+                                    onEnsureCastLoaded = viewModel::ensureCastLoaded,
+                                    onLoadMoreCast = viewModel::loadMoreCast,
+                                    onCastSortChange = viewModel::setCastSort,
+                                    onEnsureStaffLoaded = viewModel::ensureStaffLoaded,
+                                    onLoadMoreStaff = viewModel::loadMoreStaff,
+                                    onStaffSortChange = viewModel::setStaffSort,
+                                    mediaStats = mediaStats,
+                                    onEnsureStatsLoaded = viewModel::ensureStatsLoaded,
+                                    onRetryStats = viewModel::retryStats,
+                                    onRankingClick = { ranking ->
+                                        viewModel.openDiscoverSearch(
+                                            rankingSearchFilters(
+                                                ranking,
+                                                isManga = state.details.type == com.anisync.android.type.MediaType.MANGA
+                                            )
                                         )
-                                    )
-                                },
-                                onGenreClick = { genre ->
-                                    viewModel.openDiscoverSearch(
-                                        genreSearchFilters(
-                                            genre,
-                                            isManga = state.details.type == com.anisync.android.type.MediaType.MANGA
+                                    },
+                                    onGenreClick = { genre ->
+                                        viewModel.openDiscoverSearch(
+                                            genreSearchFilters(
+                                                genre,
+                                                isManga = state.details.type == com.anisync.android.type.MediaType.MANGA
+                                            )
                                         )
-                                    )
-                                },
-                                onTagClick = { tag ->
-                                    viewModel.openDiscoverSearch(
-                                        tagSearchFilters(
-                                            tag.name,
-                                            isManga = state.details.type == com.anisync.android.type.MediaType.MANGA
+                                    },
+                                    onTagClick = { tag ->
+                                        viewModel.openDiscoverSearch(
+                                            tagSearchFilters(
+                                                tag.name,
+                                                isManga = state.details.type == com.anisync.android.type.MediaType.MANGA
+                                            )
                                         )
-                                    )
-                                },
-                                onRelationClick = navigateToRelationDetails,
-                                onCharacterClick = navigateToCharacterDetails,
-                                onStaffClick = navigateToStaffDetails,
-                                onVoiceActorClick = navigateToStaffDetails,
-                                onStudioClick = onStudioClick,
-                                onRelatedSeeAllClick = {
-                                    shouldKeepChromeOverlayForReturn = true
-                                    hasObservedDetailsReEnter = false
-                                    onRelatedSeeAllClick(
-                                        state.details.id,
-                                        state.details.getTitle(titleLanguage)
-                                    )
-                                },
-                                onRecommendationsSeeAllClick = {
-                                    shouldKeepChromeOverlayForReturn = true
-                                    hasObservedDetailsReEnter = false
-                                    onRecommendationsSeeAllClick(
-                                        state.details.id,
-                                        state.details.getTitle(titleLanguage)
-                                    )
-                                },
-                                onThemesSeeAllClick = {
-                                    shouldKeepChromeOverlayForReturn = true
-                                    hasObservedDetailsReEnter = false
-                                    onThemesSeeAllClick(
-                                        state.details.id,
-                                        state.details.getTitle(titleLanguage),
-                                        state.details.coverageEpisodeCount,
-                                        state.details.bannerUrl ?: state.details.coverUrl
-                                    )
-                                },
-                                themesState = themesState,
-                                onRetryThemes = themesViewModel::retry,
-                                onWriteReviewClick = {
-                                    onWriteReviewClick(
-                                        state.details.id,
-                                        state.details.getTitle(titleLanguage)
-                                    )
-                                },
-                                onReviewClick = { reviewId ->
-                                    shouldKeepChromeOverlayForReturn = true
-                                    hasObservedDetailsReEnter = false
-                                    onReviewClick(reviewId)
-                                },
-                                onEditNotes = viewModel::openEditSheet,
-                                discussions = discussions,
-                                onDiscussionClick = { threadId, threadTitle ->
-                                    shouldKeepChromeOverlayForReturn = true
-                                    hasObservedDetailsReEnter = false
-                                    onDiscussionClick(threadId, threadTitle)
-                                },
-                                onViewAllDiscussions = {
-                                    shouldKeepChromeOverlayForReturn = true
-                                    hasObservedDetailsReEnter = false
-                                    onViewAllDiscussions(
-                                        state.details.id,
-                                        state.details.getTitle(titleLanguage)
-                                    )
-                                },
-                                onStartDiscussion = {
-                                    onStartDiscussion(
-                                        state.details.id,
-                                        state.details.getTitle(titleLanguage),
-                                        state.details.coverUrl
-                                    )
-                                },
-                                onRecommendMedia = viewModel::recommendMedia,
-                                onUserClick = onUserClick,
-                                onStatusSelect = { status ->
-                                    viewModel.saveMediaListEntry(
-                                        status,
-                                        state.details.listProgress ?: 0
-                                    )
-                                },
-                                onProgressChange = { progress ->
-                                    viewModel.saveMediaListEntry(
-                                        state.details.listStatus ?: LibraryStatus.CURRENT,
-                                        progress.coerceAtLeast(0)
-                                    )
-                                },
-                                onEditEntry = viewModel::openEditSheet,
-                                onRemoveEntry = viewModel::deleteMediaListEntry,
-                                onRateRecommendation = viewModel::rateRecommendation,
-                                sharedTransitionScope = sharedTransitionScope,
-                                animatedVisibilityScope = animatedVisibilityScope,
-                                titleLanguage = titleLanguage
+                                    },
+                                    onRelationClick = navigateToRelationDetails,
+                                    onCharacterClick = navigateToCharacterDetails,
+                                    onStaffClick = navigateToStaffDetails,
+                                    onVoiceActorClick = navigateToStaffDetails,
+                                    onStudioClick = onStudioClick,
+                                    onRelatedSeeAllClick = {
+                                        shouldKeepChromeOverlayForReturn = true
+                                        hasObservedDetailsReEnter = false
+                                        onRelatedSeeAllClick(
+                                            state.details.id,
+                                            state.details.getTitle(titleLanguage)
+                                        )
+                                    },
+                                    onRecommendationsSeeAllClick = {
+                                        shouldKeepChromeOverlayForReturn = true
+                                        hasObservedDetailsReEnter = false
+                                        onRecommendationsSeeAllClick(
+                                            state.details.id,
+                                            state.details.getTitle(titleLanguage)
+                                        )
+                                    },
+                                    onThemesSeeAllClick = {
+                                        shouldKeepChromeOverlayForReturn = true
+                                        hasObservedDetailsReEnter = false
+                                        onThemesSeeAllClick(
+                                            state.details.id,
+                                            state.details.getTitle(titleLanguage),
+                                            state.details.coverageEpisodeCount,
+                                            state.details.bannerUrl ?: state.details.coverUrl
+                                        )
+                                    },
+                                    themesState = themesState,
+                                    onRetryThemes = themesViewModel::retry,
+                                    onWriteReviewClick = {
+                                        onWriteReviewClick(
+                                            state.details.id,
+                                            state.details.getTitle(titleLanguage)
+                                        )
+                                    },
+                                    onReviewClick = { reviewId ->
+                                        shouldKeepChromeOverlayForReturn = true
+                                        hasObservedDetailsReEnter = false
+                                        onReviewClick(reviewId)
+                                    },
+                                    onEditNotes = viewModel::openEditSheet,
+                                    discussions = discussions,
+                                    onDiscussionClick = { threadId, threadTitle ->
+                                        shouldKeepChromeOverlayForReturn = true
+                                        hasObservedDetailsReEnter = false
+                                        onDiscussionClick(threadId, threadTitle)
+                                    },
+                                    onViewAllDiscussions = {
+                                        shouldKeepChromeOverlayForReturn = true
+                                        hasObservedDetailsReEnter = false
+                                        onViewAllDiscussions(
+                                            state.details.id,
+                                            state.details.getTitle(titleLanguage)
+                                        )
+                                    },
+                                    onStartDiscussion = {
+                                        onStartDiscussion(
+                                            state.details.id,
+                                            state.details.getTitle(titleLanguage),
+                                            state.details.coverUrl
+                                        )
+                                    },
+                                    onRecommendMedia = viewModel::recommendMedia,
+                                    onUserClick = onUserClick,
+                                    onStatusSelect = { status ->
+                                        viewModel.saveMediaListEntry(
+                                            status,
+                                            state.details.listProgress ?: 0
+                                        )
+                                    },
+                                    onProgressChange = { progress ->
+                                        viewModel.saveMediaListEntry(
+                                            state.details.listStatus ?: LibraryStatus.CURRENT,
+                                            progress.coerceAtLeast(0)
+                                        )
+                                    },
+                                    onEditEntry = viewModel::openEditSheet,
+                                    onRemoveEntry = viewModel::deleteMediaListEntry,
+                                    onRateRecommendation = viewModel::rateRecommendation,
+                                    sharedTransitionScope = sharedTransitionScope,
+                                    animatedVisibilityScope = animatedVisibilityScope,
+                                    titleLanguage = titleLanguage
+                                )
+                            }
+
+                            is DetailsUiState.Error -> ErrorStateContent(
+                                message = state.message,
+                                onBackClick = onBackClick
                             )
-                        }
-
-                        is DetailsUiState.Error -> ErrorStateContent(
-                            message = state.message,
-                            onBackClick = onBackClick
-                        )
+                            }
                         }
                     }
                 }
-            }
 
-            // Play-Store-style scrim behind the transparent status bar so the system clock /
-            // battery / back arrow stay legible over a bright banner. Fades out as the opaque
-            // app bar scrolls in, and is suppressed on the error page (no banner there).
-            if (bannerVisible) {
-                StatusBarScrim(
-                    alpha = 1f - overlappedFraction,
-                    modifier = Modifier.align(Alignment.TopCenter)
-                )
-            }
-        }
-
-        if (showEditSheet) {
-            draftEntry?.let { entry ->
-                val details = (uiState as? DetailsUiState.Success)?.details
-                val mediaType = details?.type ?: entry.type
-                val availableLists = when (mediaType) {
-                    com.anisync.android.type.MediaType.ANIME -> animeCustomLists
-                    com.anisync.android.type.MediaType.MANGA -> mangaCustomLists
-                    else -> emptyList()
+                // Play-Store-style scrim behind the transparent status bar so the system clock /
+                // battery / back arrow stay legible over a bright banner. Fades out as the opaque
+                // app bar scrolls in, and is suppressed on the error page (no banner there).
+                if (bannerVisible) {
+                    StatusBarScrim(
+                        alpha = 1f - overlappedFraction,
+                        modifier = Modifier.align(Alignment.TopCenter)
+                    )
                 }
+            }
+
+            if (showEditSheet) {
+                draftEntry?.let { entry ->
+                    val details = (uiState as? DetailsUiState.Success)?.details
+                    val mediaType = details?.type ?: entry.type
+                    val availableLists = when (mediaType) {
+                        com.anisync.android.type.MediaType.ANIME -> animeCustomLists
+                        com.anisync.android.type.MediaType.MANGA -> mangaCustomLists
+                        else -> emptyList()
+                    }
                 
-                com.anisync.android.presentation.library.components.EditLibraryEntrySheet(
-                    entry = entry,
-                    titleLanguage = titleLanguage,
-                    scoreFormat = userScoreFormat,
-                    availableCustomLists = availableLists,
-                    advancedScoringCategories = if (mediaType == com.anisync.android.type.MediaType.MANGA) {
-                        mangaAdvancedScoring
-                    } else {
-                        animeAdvancedScoring
-                    },
-                    onDismiss = viewModel::closeEditSheet,
-                    onSave = viewModel::saveLibraryEntry,
-                    onDelete = {
-                        viewModel.deleteMediaListEntry()
-                        viewModel.closeEditSheet()
-                    }
-                )
+                    com.anisync.android.presentation.library.components.EditLibraryEntrySheet(
+                        entry = entry,
+                        titleLanguage = titleLanguage,
+                        scoreFormat = userScoreFormat,
+                        availableCustomLists = availableLists,
+                        advancedScoringCategories = if (mediaType == com.anisync.android.type.MediaType.MANGA) {
+                            mangaAdvancedScoring
+                        } else {
+                            animeAdvancedScoring
+                        },
+                        onDismiss = viewModel::closeEditSheet,
+                        onSave = viewModel::saveLibraryEntry,
+                        onDelete = {
+                            viewModel.deleteMediaListEntry()
+                            viewModel.closeEditSheet()
+                        }
+                    )
+                }
             }
-        }
 
-        if (showShareImageSheet) {
-            (uiState as? DetailsUiState.Success)?.details?.let { details ->
-                ShareImageSheet(
-                    onDismiss = { showShareImageSheet = false },
-                    link = AniListUrls.mediaUrl(details.id, details.type),
-                    seedColor = parseCoverColor(details.coverColor),
-                    supportsPrivacy = true,
-                    templates = listOf(ShareCardTemplate.STANDARD, ShareCardTemplate.HERO),
-                ) {
-                    MediaShareCard(details = details, scoreFormat = userScoreFormat)
+            if (showShareImageSheet) {
+                (uiState as? DetailsUiState.Success)?.details?.let { details ->
+                    ShareImageSheet(
+                        onDismiss = { showShareImageSheet = false },
+                        link = AniListUrls.mediaUrl(details.id, details.type),
+                        seedColor = parseCoverColor(details.coverColor),
+                        supportsPrivacy = true,
+                        templates = listOf(ShareCardTemplate.STANDARD, ShareCardTemplate.HERO),
+                    ) {
+                        MediaShareCard(details = details, scoreFormat = userScoreFormat)
+                    }
                 }
             }
         }
     }
+}
+
+/**
+ * Wraps the media page in a palette seeded from its own cover art, when the "Colors from artwork"
+ * appearance preference is on. Titles AniList ships no cover color for, and colors too washed out
+ * to read as a hue, fall through to the app theme. The viewer's palette style, light/dark choice
+ * and AMOLED setting are all preserved.
+ */
+@Composable
+private fun MediaArtworkThemeOverride(
+    coverColor: String?,
+    content: @Composable () -> Unit,
+) {
+    val appSettings = LocalAppSettings.current
+    val enabled by appSettings.mediaArtworkTheming.collectAsStateWithLifecycle()
+    val themeMode by appSettings.themeMode.collectAsStateWithLifecycle()
+    val paletteStyle by appSettings.paletteStyle.collectAsStateWithLifecycle()
+    val amoledEnabled by appSettings.amoledEnabled.collectAsStateWithLifecycle()
+    val scheme = mediaArtworkColorScheme(
+        seed = if (enabled) mediaArtworkSeedColor(coverColor) else null,
+        darkTheme = themeMode.resolveDarkTheme(),
+        amoled = amoledEnabled,
+        paletteStyle = paletteStyle,
+    )
+    MaterialTheme(colorScheme = scheme, content = content)
 }
 
 @Composable
