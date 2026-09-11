@@ -29,6 +29,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -45,8 +46,8 @@ import com.anisync.android.ui.theme.LocalExpressiveTypography
  *  - divider
  *  - up to three sub-stats using tabular figures
  *
- * Every number is sized against the width it actually gets, so a five-digit episode count keeps all
- * of its digits instead of being cut off mid-number.
+ * Every number and label is sized against the width it actually gets, so a five-digit episode count
+ * keeps all of its digits and a long translated label keeps all of its letters.
  */
 @Composable
 fun HeroDashboard(
@@ -87,10 +88,11 @@ fun HeroDashboard(
                 // has to fit into.
                 val unitStyle = MaterialTheme.typography.headlineSmall
                 val unitWidth = measuredWidth(primaryUnit, unitStyle).coerceAtMost(contentWidth * 0.4f)
-                val heroStyle = fittedNumericStyle(
+                val heroStyle = fittedTextStyle(
                     base = expressive.heroNumeric,
                     values = listOf(primaryValue),
                     maxWidth = contentWidth - unitWidth - 8.dp,
+                    maxLines = 1,
                     minFontSize = 40.sp
                 )
                 Row(verticalAlignment = Alignment.Bottom) {
@@ -131,19 +133,29 @@ fun HeroDashboard(
                     val spacing = 20.dp
                     val columnWidth = (contentWidth - spacing * (secondaryRow.size - 1)) / secondaryRow.size
                     // One size for the whole row, taken from the longest value, so the columns keep
-                    // an even editorial rhythm instead of each number shrinking on its own.
-                    val valueStyle = fittedNumericStyle(
+                    // an even editorial rhythm instead of each number shrinking on its own. Labels
+                    // are fitted the same way: German turns "mean score" into a 22-letter word that
+                    // a fixed size cuts in half.
+                    val valueStyle = fittedTextStyle(
                         base = expressive.statNumericMedium,
                         values = secondaryRow.map { it.value },
                         maxWidth = columnWidth,
+                        maxLines = 1,
                         minFontSize = 20.sp
+                    )
+                    val labelStyle = fittedTextStyle(
+                        base = expressive.statLabel,
+                        values = secondaryRow.map { it.label.uppercase() },
+                        maxWidth = columnWidth,
+                        maxLines = LABEL_MAX_LINES,
+                        minFontSize = 8.sp
                     )
                     Row(
                         Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(spacing)
                     ) {
                         secondaryRow.forEach { stat ->
-                            EditorialStatBlock(stat, valueStyle, Modifier.weight(1f))
+                            EditorialStatBlock(stat, valueStyle, labelStyle, Modifier.weight(1f))
                         }
                     }
                 }
@@ -156,9 +168,9 @@ fun HeroDashboard(
 private fun EditorialStatBlock(
     stat: EditorialStat,
     valueStyle: TextStyle,
+    labelStyle: TextStyle,
     modifier: Modifier = Modifier
 ) {
-    val expressive = LocalExpressiveTypography.current
     Column(modifier) {
         if (stat.icon != null) {
             Icon(
@@ -178,9 +190,10 @@ private fun EditorialStatBlock(
         )
         Text(
             text = stat.label.uppercase(),
-            style = expressive.statLabel,
+            style = labelStyle,
             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
-            maxLines = 2
+            maxLines = LABEL_MAX_LINES,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -196,36 +209,52 @@ private fun measuredWidth(text: String, style: TextStyle): Dp {
 }
 
 /**
- * [base] stepped down until the widest of [values] fits [maxWidth] on one line, never below
- * [minFontSize]. Line height keeps the ratio the base style declares.
+ * [base] stepped down until every one of [values] fits [maxWidth] within [maxLines], never below
+ * [minFontSize]. Line height and tracking keep the ratios the base style declares.
  */
 @Composable
-private fun fittedNumericStyle(
+private fun fittedTextStyle(
     base: TextStyle,
     values: List<String>,
     maxWidth: Dp,
+    maxLines: Int,
     minFontSize: TextUnit
 ): TextStyle {
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
-    return remember(base, values, maxWidth, minFontSize, density, measurer) {
-        val available = with(density) { maxWidth.toPx() }
-        val lineHeightRatio = if (base.fontSize.isSp && base.lineHeight.isSp && base.fontSize.value > 0f) {
-            base.lineHeight.value / base.fontSize.value
-        } else {
-            1f
-        }
+    return remember(base, values, maxWidth, maxLines, minFontSize, density, measurer) {
+        val constraints = Constraints(maxWidth = with(density) { maxWidth.roundToPx() }.coerceAtLeast(0))
         var size = base.fontSize.value
         var style = base
         while (true) {
-            val widest = values.maxOfOrNull { measurer.measure(it, style).size.width } ?: 0
-            if (widest <= available || size <= minFontSize.value) break
-            size = (size - 2f).coerceAtLeast(minFontSize.value)
-            style = base.copy(fontSize = size.sp, lineHeight = (size * lineHeightRatio).sp)
+            val overflows = values.any { value ->
+                measurer.measure(
+                    text = value,
+                    style = style,
+                    maxLines = maxLines,
+                    constraints = constraints
+                ).hasVisualOverflow
+            }
+            if (!overflows || size <= minFontSize.value) break
+            size = (size - 1f).coerceAtLeast(minFontSize.value)
+            style = base.scaledTo(size)
         }
         style
     }
 }
+
+/** [base] at [fontSize], with line height and tracking scaled by the same factor. */
+private fun TextStyle.scaledTo(fontSize: Float): TextStyle {
+    val scale = if (this.fontSize.isSp && this.fontSize.value > 0f) fontSize / this.fontSize.value else 1f
+    return copy(
+        fontSize = fontSize.sp,
+        lineHeight = if (lineHeight.isSp) (lineHeight.value * scale).sp else lineHeight,
+        letterSpacing = if (letterSpacing.isSp) (letterSpacing.value * scale).sp else letterSpacing
+    )
+}
+
+/** A label longer than this in the narrowest column is shrunk rather than cut. */
+private const val LABEL_MAX_LINES = 3
 
 // region Previews
 
@@ -260,6 +289,24 @@ private fun HeroDashboardLongValuesPreview() {
                 EditorialStat("25204", "Episodes", Icons.Default.PlayArrow),
                 EditorialStat("72.87", "Mean score", Icons.Default.Star),
                 EditorialStat("15.14", "Standard deviation")
+            )
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "HeroDashboard — long translated labels", widthDp = 360)
+@Composable
+private fun HeroDashboardLongLabelsPreview() {
+    StatPreviewSurface(isDark = false) {
+        HeroDashboard(
+            primaryValue = "242",
+            primaryUnit = "anime",
+            primaryLabel = "Anime gesamt",
+            accentText = "≈ 120,8 Tage deines Lebens",
+            secondaryRow = listOf(
+                EditorialStat("7760", "Episoden", Icons.Default.PlayArrow),
+                EditorialStat("85,9", "Durchschnittsbewertung", Icons.Default.Star),
+                EditorialStat("9,8", "Standardabweichung")
             )
         )
     }
