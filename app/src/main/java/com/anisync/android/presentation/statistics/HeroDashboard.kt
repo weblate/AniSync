@@ -1,6 +1,7 @@
 package com.anisync.android.presentation.statistics
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,10 +21,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.anisync.android.ui.theme.LocalExpressiveTypography
@@ -37,6 +44,9 @@ import com.anisync.android.ui.theme.LocalExpressiveTypography
  *  - optional editorial-lead sentence ("≈ 42 days of your life")
  *  - divider
  *  - up to three sub-stats using tabular figures
+ *
+ * Every number is sized against the width it actually gets, so a five-digit episode count keeps all
+ * of its digits instead of being cut off mid-number.
  */
 @Composable
 fun HeroDashboard(
@@ -57,7 +67,7 @@ fun HeroDashboard(
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
     ) {
-        Column(
+        BoxWithConstraints(
             modifier = Modifier.padding(
                 start = 24.dp,
                 end = 24.dp,
@@ -65,57 +75,76 @@ fun HeroDashboard(
                 bottom = 24.dp
             )
         ) {
-            Text(
-                text = primaryLabel.uppercase(),
-                style = expressive.statLabel,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-            )
-            Spacer(Modifier.height(4.dp))
-            val heroStyle = when {
-                primaryValue.length > 6 -> expressive.heroNumeric.copy(fontSize = 56.sp, lineHeight = 56.sp)
-                primaryValue.length > 4 -> expressive.heroNumeric.copy(fontSize = 72.sp, lineHeight = 72.sp)
-                else -> expressive.heroNumeric
-            }
-            Row(verticalAlignment = Alignment.Bottom) {
+            val contentWidth = maxWidth
+            Column {
                 Text(
-                    text = primaryValue,
-                    style = heroStyle,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    maxLines = 1
+                    text = primaryLabel.uppercase(),
+                    style = expressive.statLabel,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                 )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = primaryUnit,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
-                    softWrap = true,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .weight(1f, fill = false)
-                        .padding(bottom = 14.dp)
+                Spacer(Modifier.height(4.dp))
+                // The unit takes at most 40% of the row, and what is left is what the hero number
+                // has to fit into.
+                val unitStyle = MaterialTheme.typography.headlineSmall
+                val unitWidth = measuredWidth(primaryUnit, unitStyle).coerceAtMost(contentWidth * 0.4f)
+                val heroStyle = fittedNumericStyle(
+                    base = expressive.heroNumeric,
+                    values = listOf(primaryValue),
+                    maxWidth = contentWidth - unitWidth - 8.dp,
+                    minFontSize = 40.sp
                 )
-            }
-            accentText?.let {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = it,
-                    style = expressive.editorialLead,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
-                )
-            }
-            if (secondaryRow.isNotEmpty()) {
-                Spacer(Modifier.height(24.dp))
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f)
-                )
-                Spacer(Modifier.height(20.dp))
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(20.dp)
-                ) {
-                    secondaryRow.forEach { stat ->
-                        EditorialStatBlock(stat, Modifier.weight(1f))
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        text = primaryValue,
+                        style = heroStyle,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = primaryUnit,
+                        style = unitStyle,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                        softWrap = true,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .padding(bottom = 14.dp)
+                    )
+                }
+                accentText?.let {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = it,
+                        style = expressive.editorialLead,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                    )
+                }
+                if (secondaryRow.isNotEmpty()) {
+                    Spacer(Modifier.height(24.dp))
+                    HorizontalDivider(
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f)
+                    )
+                    Spacer(Modifier.height(20.dp))
+                    val spacing = 20.dp
+                    val columnWidth = (contentWidth - spacing * (secondaryRow.size - 1)) / secondaryRow.size
+                    // One size for the whole row, taken from the longest value, so the columns keep
+                    // an even editorial rhythm instead of each number shrinking on its own.
+                    val valueStyle = fittedNumericStyle(
+                        base = expressive.statNumericMedium,
+                        values = secondaryRow.map { it.value },
+                        maxWidth = columnWidth,
+                        minFontSize = 20.sp
+                    )
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(spacing)
+                    ) {
+                        secondaryRow.forEach { stat ->
+                            EditorialStatBlock(stat, valueStyle, Modifier.weight(1f))
+                        }
                     }
                 }
             }
@@ -124,7 +153,11 @@ fun HeroDashboard(
 }
 
 @Composable
-private fun EditorialStatBlock(stat: EditorialStat, modifier: Modifier = Modifier) {
+private fun EditorialStatBlock(
+    stat: EditorialStat,
+    valueStyle: TextStyle,
+    modifier: Modifier = Modifier
+) {
     val expressive = LocalExpressiveTypography.current
     Column(modifier) {
         if (stat.icon != null) {
@@ -138,9 +171,10 @@ private fun EditorialStatBlock(stat: EditorialStat, modifier: Modifier = Modifie
         }
         Text(
             text = stat.value,
-            style = expressive.statNumericMedium,
+            style = valueStyle,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
-            maxLines = 1
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
         Text(
             text = stat.label.uppercase(),
@@ -148,6 +182,48 @@ private fun EditorialStatBlock(stat: EditorialStat, modifier: Modifier = Modifie
             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
             maxLines = 2
         )
+    }
+}
+
+/** Width [text] needs on one line in [style]. */
+@Composable
+private fun measuredWidth(text: String, style: TextStyle): Dp {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    return remember(text, style, density, measurer) {
+        with(density) { measurer.measure(text, style).size.width.toDp() }
+    }
+}
+
+/**
+ * [base] stepped down until the widest of [values] fits [maxWidth] on one line, never below
+ * [minFontSize]. Line height keeps the ratio the base style declares.
+ */
+@Composable
+private fun fittedNumericStyle(
+    base: TextStyle,
+    values: List<String>,
+    maxWidth: Dp,
+    minFontSize: TextUnit
+): TextStyle {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    return remember(base, values, maxWidth, minFontSize, density, measurer) {
+        val available = with(density) { maxWidth.toPx() }
+        val lineHeightRatio = if (base.fontSize.isSp && base.lineHeight.isSp && base.fontSize.value > 0f) {
+            base.lineHeight.value / base.fontSize.value
+        } else {
+            1f
+        }
+        var size = base.fontSize.value
+        var style = base
+        while (true) {
+            val widest = values.maxOfOrNull { measurer.measure(it, style).size.width } ?: 0
+            if (widest <= available || size <= minFontSize.value) break
+            size = (size - 2f).coerceAtLeast(minFontSize.value)
+            style = base.copy(fontSize = size.sp, lineHeight = (size * lineHeightRatio).sp)
+        }
+        style
     }
 }
 
@@ -166,6 +242,24 @@ private fun HeroDashboardTypicalPreview() {
                 EditorialStat("128", "Total", Icons.Default.PlayArrow),
                 EditorialStat("8.1", "Mean", Icons.Default.Star),
                 EditorialStat("1.4", "σ")
+            )
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "HeroDashboard — five-digit sub-stats", widthDp = 360)
+@Composable
+private fun HeroDashboardLongValuesPreview() {
+    StatPreviewSurface(isDark = false) {
+        HeroDashboard(
+            primaryValue = "1005",
+            primaryUnit = "anime",
+            primaryLabel = "Total anime",
+            accentText = "≈ 420.0 days of your life",
+            secondaryRow = listOf(
+                EditorialStat("25204", "Episodes", Icons.Default.PlayArrow),
+                EditorialStat("72.87", "Mean score", Icons.Default.Star),
+                EditorialStat("15.14", "Standard deviation")
             )
         )
     }
