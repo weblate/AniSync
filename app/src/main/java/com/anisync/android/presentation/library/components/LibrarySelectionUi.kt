@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -68,6 +70,9 @@ import com.anisync.android.type.MediaType
 import com.anisync.android.ui.theme.ListIndicatorKind
 import com.anisync.android.ui.theme.listIndicatorColor
 import kotlin.math.roundToInt
+
+/** What four bulk actions need before they start drifting apart. */
+private val BulkBarMaxWidth = 480.dp
 
 /**
  * Contextual bar shown while a selection is live.
@@ -130,6 +135,10 @@ fun LibrarySelectionTopBar(
  * `UpdateMediaListEntries` call whatever the selection size; adding to a custom list is one request
  * per entry, because that mutation has no `customLists` argument, so it is marked as the slow path.
  * Removing is also per-entry and sits under More, where destructive actions belong.
+ *
+ * Four actions need about 380dp, so the bar is capped and centred rather than stretched: a floating
+ * bar spanning a 1280dp tablet reads as a second navigation bar, and puts its two end actions a
+ * thumb's width from opposite edges of the screen.
  */
 @Composable
 fun LibraryBulkActionBar(
@@ -145,7 +154,10 @@ fun LibraryBulkActionBar(
         shape = RoundedCornerShape(28.dp),
         tonalElevation = 3.dp,
         shadowElevation = 4.dp,
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier
+            .fillMaxWidth()
+            .wrapContentWidth(Alignment.CenterHorizontally)
+            .widthIn(max = BulkBarMaxWidth)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
