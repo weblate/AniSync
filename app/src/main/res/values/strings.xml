@@ -2087,6 +2087,14 @@
     <string name="library_adding_title">Adding %1$d entries to %2$s</string>
     <string name="library_bulk_per_entry_explainer">AniList handles one entry per request here, so this runs at the client rate limit of 25 a minute. Leaving the screen keeps it running.</string>
     <string name="library_bulk_progress">%1$d of %2$d done</string>
+    <!-- Watch priority -->
+    <string name="priority">Priority</string>
+    <string name="priority_low">Low</string>
+    <string name="priority_medium">Medium</string>
+    <string name="priority_high">High</string>
+    <string name="library_set_priority">Set priority</string>
+    <string name="library_priority_count_to">Set %1$d to %2$s</string>
+    <string name="sort_priority">Priority</string>
     <!-- Library empty states -->
     <string name="library_empty_all_title">Your library is empty</string>
     <string name="library_empty_all_desc">Anything you track on AniList turns up here.</string>
