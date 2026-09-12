@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.LowPriority
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.outlined.Lock
@@ -50,6 +51,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.anisync.android.R
+import com.anisync.android.domain.LibraryPriority
 import com.anisync.android.domain.LibraryStatus
 import com.anisync.android.domain.ScoreFormat
 import com.anisync.android.domain.formatScore
@@ -59,6 +61,7 @@ import com.anisync.android.presentation.components.menu.Menu
 import com.anisync.android.presentation.library.BulkKind
 import com.anisync.android.presentation.library.BulkOperation
 import com.anisync.android.presentation.util.bouncyClickable
+import com.anisync.android.presentation.util.toIcon
 import com.anisync.android.presentation.util.toLabel
 import com.anisync.android.presentation.util.toListIcon
 import com.anisync.android.type.MediaType
@@ -235,6 +238,7 @@ fun LibraryBulkMoreMenu(
     onDismiss: () -> Unit,
     canEditSingle: Boolean,
     onEditSingle: () -> Unit,
+    onSetPriority: () -> Unit,
     onSetPrivate: (Boolean) -> Unit,
     onRemove: () -> Unit
 ) {
@@ -249,6 +253,14 @@ fun LibraryBulkMoreMenu(
                 }
             )
         }
+        item(
+            text = stringResource(R.string.library_set_priority),
+            leadingIcon = Icons.Default.LowPriority,
+            onClick = {
+                onDismiss()
+                onSetPriority()
+            }
+        )
         item(
             text = stringResource(R.string.library_make_private),
             leadingIcon = Icons.Outlined.Lock,
@@ -371,6 +383,104 @@ private fun StatusBadge(status: LibraryStatus) {
             contentDescription = null,
             tint = colors.content,
             modifier = Modifier.size(16.dp)
+        )
+    }
+}
+
+/**
+ * Priority for the whole selection. High first, because that is the level anyone opens this to set.
+ *
+ * Same one-request path as status and score, so it says so in the same place. Picking Low writes 0,
+ * which is also what an entry that has never carried a priority reads as — clearing and setting Low
+ * are the same edit on AniList, and this sheet does not pretend otherwise.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BulkPrioritySheet(
+    visible: Boolean,
+    count: Int,
+    onPick: (LibraryPriority) -> Unit,
+    onDismiss: () -> Unit
+) {
+    if (!visible) return
+    var picked by remember { mutableStateOf<LibraryPriority?>(null) }
+    val levels = remember { LibraryPriority.entries.reversed() }
+
+    FilterSheetScaffold(
+        title = stringResource(R.string.library_set_priority),
+        onDismiss = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        levels.forEach { level ->
+            val selected = picked == level
+            FilterOptionRow(
+                label = level.toLabel(),
+                selected = selected,
+                leading = { PriorityBadge(level) },
+                trailing = if (selected) {
+                    {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                } else {
+                    null
+                },
+                onClick = { picked = level }
+            )
+        }
+        Text(
+            text = stringResource(R.string.library_bulk_one_request, count),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+        )
+        androidx.compose.material3.Button(
+            onClick = { picked?.let(onPick) },
+            enabled = picked != null,
+            shape = CircleShape,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .height(52.dp)
+        ) {
+            Text(
+                text = picked?.let {
+                    stringResource(R.string.library_priority_count_to, count, it.toLabel())
+                } ?: stringResource(R.string.library_set_priority)
+            )
+        }
+    }
+}
+
+/**
+ * The level badge: a rounded square whose fill steps down with the level, so the three rows read as
+ * a ladder before you have read a word of them.
+ */
+@Composable
+private fun PriorityBadge(level: LibraryPriority) {
+    val container = when (level) {
+        LibraryPriority.HIGH -> MaterialTheme.colorScheme.primary
+        LibraryPriority.MEDIUM -> MaterialTheme.colorScheme.secondaryContainer
+        LibraryPriority.LOW -> MaterialTheme.colorScheme.surfaceContainerHigh
+    }
+    val content = when (level) {
+        LibraryPriority.HIGH -> MaterialTheme.colorScheme.onPrimary
+        LibraryPriority.MEDIUM -> MaterialTheme.colorScheme.onSecondaryContainer
+        LibraryPriority.LOW -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Box(
+        modifier = Modifier.size(28.dp).clip(RoundedCornerShape(9.dp)).background(container),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = level.toIcon(),
+            contentDescription = null,
+            tint = content,
+            modifier = Modifier.size(20.dp)
         )
     }
 }
