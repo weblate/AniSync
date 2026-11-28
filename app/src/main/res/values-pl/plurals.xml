@@ -606,4 +606,40 @@
         <item quantity="many">Masz %1$s których %2$s nie dodał</item>
         <item quantity="other">Masz %1$s których %2$s nie dodał</item>
     </plurals>
+    <plurals name="episodes_behind">
+        <item quantity="one">%d ODCINEK W TYLE</item>
+        <item quantity="few">%d ODCINKI W TYLE</item>
+        <item quantity="many">%d ODCINKÓW W TYLE</item>
+        <item quantity="other">%d ODCINKÓW W TYLE</item>
+    </plurals>
+    <plurals name="recap_opener_franchise">
+        <item quantity="one">%1$s, %2$s i %3$s wystąpienie z serii %4$s.</item>
+        <item quantity="few">%1$s, %2$s i %3$s wystąpienia z serii %4$s.</item>
+        <item quantity="many">%1$s, %2$s i %3$s wystąpień z serii %4$s.</item>
+        <item quantity="other">%1$s, %2$s i %3$s wystąpień z serii %4$s.</item>
+    </plurals>
+    <plurals name="recap_note_shorts_film">
+        <item quantity="one">Klasyfikowane po czasie, więc %1$s %2$s minutowy short nie wyprzedzi pełnometrażowego filmu.</item>
+        <item quantity="few">Klasyfikowane po czasie, więc %1$s %2$s minutowe shorty nie wyprzedzą pełnometrażowego filmu.</item>
+        <item quantity="many">Klasyfikowane po czasie, więc %1$s %2$s minutowych shortów nie wyprzedzi pełnometrażowego filmu.</item>
+        <item quantity="other">Klasyfikowane po czasie, więc %1$s %2$s minutowych shortów nie wyprzedzi pełnometrażowego filmu.</item>
+    </plurals>
+    <plurals name="recap_note_shorts">
+        <item quantity="one">Klasyfikowane po czasie, więc %1$s %2$s minutowy short nie wyprzedzi pełnego odcinka.</item>
+        <item quantity="few">Klasyfikowane po czasie, więc %1$s %2$s minutowe shorty nie wyprzedzą pełnego odcinka.</item>
+        <item quantity="many">Klasyfikowane po czasie, więc %1$s %2$s minutowych shortów nie wyprzedzi pełnego odcinka.</item>
+        <item quantity="other">Klasyfikowane po czasie, więc %1$s %2$s minutowych shortów nie wyprzedzi pełnego odcinka.</item>
+    </plurals>
+    <plurals name="recap_more_finished">
+        <item quantity="one">I jeszcze %1$s, %2$s</item>
+        <item quantity="few">I jeszcze %1$s, od %2$s do %3$s</item>
+        <item quantity="many">I jeszcze %1$s, od %2$s do %3$s</item>
+        <item quantity="other">I jeszcze %1$s, od %2$s do %3$s</item>
+    </plurals>
+    <plurals name="recap_kept_up">
+        <item quantity="one">Na bieżąco z %1$s serią podczas emisji</item>
+        <item quantity="few">Na bieżąco z %1$s seriami podczas emisji</item>
+        <item quantity="many">Na bieżąco z %1$s seriami podczas emisji</item>
+        <item quantity="other">Na bieżąco z %1$s seriami podczas emisji</item>
+    </plurals>
 </resources>
